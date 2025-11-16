@@ -1,0 +1,5 @@
+{
+  "name": "Cyber Security Training Platform",
+  "description": "An interactive web application for cybersecurity training modules. This platform uses AI to generate quiz questions for various topics, allowing users to test their knowledge and track their progress.",
+  "requestFramePermissions": []
+}
