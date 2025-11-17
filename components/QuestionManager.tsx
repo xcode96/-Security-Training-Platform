@@ -7,12 +7,13 @@ import Icon from './Icon';
 interface QuestionManagerProps {
   module: Module;
   subTopic: string;
+  contentPoint?: string | null;
   initialQuestions: Question[];
-  onSave: (moduleId: number, subTopic: string, questions: Question[]) => void;
+  onSave: (questions: Question[]) => void;
   onClose: () => void;
 }
 
-const QuestionManager: React.FC<QuestionManagerProps> = ({ module, subTopic, initialQuestions, onSave, onClose }) => {
+const QuestionManager: React.FC<QuestionManagerProps> = ({ module, subTopic, contentPoint, initialQuestions, onSave, onClose }) => {
   const [questions, setQuestions] = useState<Question[]>(initialQuestions);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -43,7 +44,7 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({ module, subTopic, ini
     setIsLoadingSuggestions(true);
     setSuggestions([]);
     try {
-        const generated = await generateQuestionSuggestions(module.title, subTopic);
+        const generated = await generateQuestionSuggestions(module.title, contentPoint || subTopic);
         setSuggestions(generated.map(q => ({...q, id: new Date().toISOString() + Math.random() })));
     } catch (error) {
         alert("Failed to generate suggestions. Please check the console.");
@@ -58,7 +59,7 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({ module, subTopic, ini
   };
   
   const handleSaveChanges = () => {
-    onSave(module.id, subTopic, questions);
+    onSave(questions);
     onClose();
   };
 
@@ -93,7 +94,7 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({ module, subTopic, ini
     <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden" style={{ minHeight: '90vh' }}>
       <header className="p-6 border-b border-gray-200">
         <h1 className="text-2xl font-bold text-gray-800">Manage Questions</h1>
-        <p className="text-gray-500">{module.title}: <span className="font-semibold text-gray-700">{subTopic}</span></p>
+        <p className="text-gray-500">{module.title}: <span className="font-semibold text-gray-700">{contentPoint ? `${subTopic} > ${contentPoint}` : subTopic}</span></p>
       </header>
       <main className="flex-1 p-6 space-y-4 overflow-y-auto">
         {renderContent()}

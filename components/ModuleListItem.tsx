@@ -1,106 +1,203 @@
-
 import React, { useState, useRef } from 'react';
 import Icon from './Icon';
-import type { Module, ModuleStatus } from '../types';
+import type { Module, ModuleStatus, SubTopic } from '../types';
 
 interface ModuleListItemProps {
   module: Module;
   status: ModuleStatus;
-  onStart: (subTopic?: string) => void;
+  onStart: (subTopic?: string, contentPoint?: string) => void;
   isAdmin: boolean;
-  onManage: (subTopic: string) => void;
+  onManage: (subTopic: string, contentPoint?: string) => void;
   onEdit: (newTitle: string) => void;
-  onExport: (subTopic: string) => void;
-  onImport: (event: React.ChangeEvent<HTMLInputElement>, subTopic: string) => void;
+  onExport: (subTopic: string, contentPoint?: string) => void;
+  onImport: (event: React.ChangeEvent<HTMLInputElement>, subTopic: string, contentPoint?: string) => void;
   isVisible: boolean;
   onToggleVisibility: () => void;
   subTopicVisibility: { [subTopic: string]: boolean };
   onToggleSubTopicVisibility: (subTopic: string) => void;
+  contentPointVisibility: { [subTopic: string]: { [contentPoint: string]: boolean } };
+  onToggleContentPointVisibility: (subTopic: string, contentPoint: string) => void;
   onAddSubTopic: (subTopic: string) => void;
   onEditSubTopic: (oldSubTopic: string, newSubTopic: string) => void;
 }
 
-const SubTopicItem: React.FC<{
-  topic: string;
+const ContentPointItem: React.FC<{
+  item: string;
   isAdmin: boolean;
-  onStart: (topic: string) => void;
-  onManage: (topic: string) => void;
-  onEdit: (newTopic: string) => void;
-  onExport: (topic: string) => void;
-  onImport: (event: React.ChangeEvent<HTMLInputElement>, topic: string) => void;
+  onStartQuiz: () => void;
   isVisible: boolean;
   onToggleVisibility: () => void;
-}> = ({ topic, isAdmin, onStart, onManage, onEdit, onExport, onImport, isVisible, onToggleVisibility }) => {
+  onManage: () => void;
+  onExport: () => void;
+  onImport: (event: React.ChangeEvent<HTMLInputElement>) => void;
+}> = ({ item, isAdmin, onStartQuiz, isVisible, onToggleVisibility, onManage, onExport, onImport }) => {
+    const importInputRef = useRef<HTMLInputElement>(null);
+    const handleImportClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        importInputRef.current?.click();
+    };
+
+  return (
+    <li className={`text-sm text-gray-500 py-1 list-disc list-inside flex justify-between items-center group ${isAdmin && !isVisible ? 'opacity-40' : ''}`}>
+      <span>{item}</span>
+      <div className="flex items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        {isAdmin ? (
+            <>
+              <button
+                  onClick={(e) => { e.stopPropagation(); onToggleVisibility(); }}
+                  title={isVisible ? 'Hide topic' : 'Show topic'}
+                  className="p-1 text-gray-400 hover:text-gray-700"
+              >
+                  <Icon iconName={isVisible ? 'eye' : 'eye-slash'} className="h-4 w-4" />
+              </button>
+              <input
+                  type="file" ref={importInputRef} className="hidden" accept=".json"
+                  onChange={(e) => onImport(e)}
+              />
+              <button onClick={handleImportClick} title={`Import questions for ${item}`} className="p-1 text-gray-400 hover:text-sky-600">
+                  <Icon iconName="upload" className="h-4 w-4" />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onExport(); }} title={`Export questions for ${item}`} className="p-1 text-gray-400 hover:text-pink-600">
+                  <Icon iconName="download" className="h-4 w-4" />
+              </button>
+              <button 
+                  onClick={(e) => { e.stopPropagation(); onManage(); }}
+                  className="px-2 py-0.5 text-xs font-semibold text-purple-700 bg-purple-100 rounded-full hover:bg-purple-200"
+                  aria-label={`Manage questions for ${item}`}
+              >
+                  Manage
+              </button>
+            </>
+        ) : (
+          <button
+            onClick={(e) => { e.stopPropagation(); onStartQuiz(); }}
+            className="px-2 py-0.5 text-xs font-semibold text-indigo-700 bg-indigo-100 rounded-full hover:bg-indigo-200"
+            aria-label={`Start quiz for ${item}`}
+          >
+            Quiz
+          </button>
+        )}
+      </div>
+    </li>
+  );
+};
+
+const SubTopicItem: React.FC<{
+  topic: SubTopic;
+  isAdmin: boolean;
+  onStartSubTopicQuiz: () => void;
+  onStartContentPointQuiz: (contentPoint: string) => void;
+  onManage: (subTopic: string, contentPoint?: string) => void;
+  onEdit: (newTitle: string) => void;
+  onExport: (subTopic: string, contentPoint?: string) => void;
+  onImport: (event: React.ChangeEvent<HTMLInputElement>, subTopic: string, contentPoint?: string) => void;
+  isVisible: boolean;
+  onToggleVisibility: () => void;
+  contentPointVisibility: { [contentPoint: string]: boolean };
+  onToggleContentPointVisibility: (contentPoint: string) => void;
+}> = ({ 
+    topic, isAdmin, onStartSubTopicQuiz, onStartContentPointQuiz, onManage, 
+    onEdit, onExport, onImport, isVisible, onToggleVisibility, 
+    contentPointVisibility, onToggleContentPointVisibility 
+}) => {
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImportClick = () => {
+  const handleImportClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     importInputRef.current?.click();
   };
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const newName = window.prompt("Enter new name for sub-topic:", topic);
-    if (newName && newName.trim() !== '' && newName.trim() !== topic) {
+    const newName = window.prompt("Enter new name for sub-topic:", topic.title);
+    if (newName && newName.trim() !== '' && newName.trim() !== topic.title) {
         onEdit(newName);
     }
   };
 
   return (
-    <li className={`flex items-center justify-between py-1 px-2 rounded-md hover:bg-indigo-50 transition-all duration-200 group ${isAdmin && !isVisible ? 'opacity-40' : ''}`}>
-      <div className="flex items-start">
-          <span className="text-indigo-400 mr-2 mt-1">&bull;</span>
-          <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-600 group-hover:text-indigo-800">{topic}</span>
-            {isAdmin && (
-                <button onClick={handleEdit} title="Edit sub-topic name" className="p-1 rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Icon iconName="edit" className="h-3 w-3" />
-                </button>
-            )}
-          </div>
-      </div>
-      <div className="flex items-center gap-2">
-        {isAdmin ? (
-          <>
-            <button
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleVisibility();
-                }}
-                title={isVisible ? 'Hide sub-topic from users' : 'Show sub-topic to users'}
-                className="p-1 text-gray-400 hover:text-gray-700"
-            >
-                <Icon iconName={isVisible ? 'eye' : 'eye-slash'} className="h-4 w-4" />
-            </button>
-            <input
-              type="file"
-              ref={importInputRef}
-              className="hidden"
-              accept=".json"
-              onChange={(e) => onImport(e, topic)}
-            />
-            <button onClick={handleImportClick} title={`Import questions for ${topic}`} className="p-1 text-gray-400 hover:text-sky-600 transition-colors">
-              <Icon iconName="upload" className="h-4 w-4" />
-            </button>
-            <button onClick={() => onExport(topic)} title={`Export questions for ${topic}`} className="p-1 text-gray-400 hover:text-pink-600 transition-colors">
-              <Icon iconName="download" className="h-4 w-4" />
-            </button>
-            <button 
-              onClick={() => onManage(topic)} 
-              className="px-3 py-1 text-xs font-semibold text-purple-700 bg-purple-100 rounded-full hover:bg-purple-200 transition-colors"
-              aria-label={`Manage questions for ${topic}`}
-            >
-              Manage
-            </button>
-          </>
-        ) : (
-          <button 
-            onClick={() => onStart(topic)} 
-            className="px-3 py-1 text-xs font-semibold text-indigo-700 bg-indigo-100 rounded-full hover:bg-indigo-200 transition-colors"
-            aria-label={`Start quiz for ${topic}`}
-          >
-            Start
-          </button>
-        )}
+    <li className={`flex flex-col rounded-md transition-all duration-200 group ${isAdmin && !isVisible ? 'opacity-40' : ''}`}>
+      <div className={`flex items-start justify-between py-2 px-2 rounded-md`}>
+        <div className="flex items-start gap-3">
+            <Icon iconName={'folder'} className="h-5 w-5 text-indigo-400 mt-px" />
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-semibold text-gray-700">{topic.title}</span>
+                {isAdmin && (
+                    <button onClick={handleEdit} title="Edit sub-topic name" className="p-1 rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Icon iconName="edit" className="h-3 w-3" />
+                    </button>
+                )}
+              </div>
+              {topic.content.length > 0 && (
+                <ul className="pl-0 pr-4 mt-1 space-y-1">
+                    {topic.content.map((item, index) => {
+                       const isContentPointVisible = contentPointVisibility?.[item] ?? true;
+                       if (!isAdmin && !isContentPointVisible) return null;
+                       return (
+                           <ContentPointItem
+                              key={index}
+                              item={item}
+                              isAdmin={isAdmin}
+                              onStartQuiz={() => onStartContentPointQuiz(item)}
+                              isVisible={isContentPointVisible}
+                              onToggleVisibility={() => onToggleContentPointVisibility(item)}
+                              onManage={() => onManage(topic.title, item)}
+                              onExport={() => onExport(topic.title, item)}
+                              onImport={(e) => onImport(e, topic.title, item)}
+                           />
+                       )
+                    })}
+                </ul>
+              )}
+            </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {isAdmin ? (
+            <>
+              <button
+                  onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleVisibility();
+                  }}
+                  title={isVisible ? 'Hide sub-topic from users' : 'Show sub-topic to users'}
+                  className="p-1 text-gray-400 hover:text-gray-700"
+              >
+                  <Icon iconName={isVisible ? 'eye' : 'eye-slash'} className="h-4 w-4" />
+              </button>
+              <input
+                type="file"
+                ref={importInputRef}
+                className="hidden"
+                accept=".json"
+                onChange={(e) => onImport(e, topic.title)}
+              />
+              <button onClick={handleImportClick} title={`Import questions for ${topic.title}`} className="p-1 text-gray-400 hover:text-sky-600 transition-colors">
+                <Icon iconName="upload" className="h-4 w-4" />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onExport(topic.title); }} title={`Export questions for ${topic.title}`} className="p-1 text-gray-400 hover:text-pink-600 transition-colors">
+                <Icon iconName="download" className="h-4 w-4" />
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); onManage(topic.title); }}
+                className="px-3 py-1 text-xs font-semibold text-purple-700 bg-purple-100 rounded-full hover:bg-purple-200 transition-colors"
+                aria-label={`Manage questions for ${topic.title}`}
+              >
+                Manage
+              </button>
+            </>
+          ) : (
+            topic.content.length === 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onStartSubTopicQuiz(); }}
+                className="px-3 py-1 text-xs font-semibold text-indigo-700 bg-indigo-100 rounded-full hover:bg-indigo-200 transition-colors"
+                aria-label={`Start quiz for ${topic.title}`}
+              >
+                Start Quiz
+              </button>
+            )
+          )}
+        </div>
       </div>
     </li>
   );
@@ -109,7 +206,9 @@ const SubTopicItem: React.FC<{
 
 const ModuleListItem: React.FC<ModuleListItemProps> = ({ 
     module, status, onStart, isAdmin, onManage, onEdit, onExport, onImport, isVisible, 
-    onToggleVisibility, subTopicVisibility, onToggleSubTopicVisibility, onAddSubTopic, onEditSubTopic
+    onToggleVisibility, subTopicVisibility, onToggleSubTopicVisibility, 
+    contentPointVisibility, onToggleContentPointVisibility,
+    onAddSubTopic, onEditSubTopic
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -142,7 +241,7 @@ const ModuleListItem: React.FC<ModuleListItemProps> = ({
     }
   };
 
-  const visibleSubTopics = isAdmin ? module.subTopics : module.subTopics.filter(topic => subTopicVisibility[topic] !== false);
+  const visibleSubTopics = isAdmin ? module.subTopics : module.subTopics.filter(topic => subTopicVisibility[topic.title] !== false);
 
   return (
     <div className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 ${isAdmin && !isVisible ? 'opacity-50' : ''}`}>
@@ -188,8 +287,8 @@ const ModuleListItem: React.FC<ModuleListItemProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-4">
-          {module.id !== 3 && getStatusBadge()}
-          {!isAdmin && module.id !== 3 && (
+          {getStatusBadge()}
+          {!isAdmin && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -209,35 +308,34 @@ const ModuleListItem: React.FC<ModuleListItemProps> = ({
       </div>
       
       {isExpanded && (
-        <div id={`module-content-${module.id}`} className="px-6 pb-4 pt-0 border-t border-gray-100">
-          <h4 className="text-sm font-semibold text-gray-700 my-3">Sub-Topics Covered:</h4>
+        <div id={`module-content-${module.id}`} className="px-4 pb-4 pt-0 border-t border-gray-100">
+          <h4 className="text-sm font-semibold text-gray-700 my-3 px-2">Sub-Topics Covered:</h4>
            {visibleSubTopics.length > 0 ? (
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-                {module.subTopics.map((topic, index) => {
-                  const isSubTopicVisible = isAdmin || (subTopicVisibility[topic] !== false);
-                  if (!isSubTopicVisible) return null;
-                  
-                  return (
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                {visibleSubTopics.map((topic, index) => (
                     <SubTopicItem
                       key={index}
                       topic={topic}
                       isAdmin={isAdmin}
-                      onStart={onStart}
+                      onStartSubTopicQuiz={() => onStart(topic.title)}
+                      onStartContentPointQuiz={(contentPoint) => onStart(topic.title, contentPoint)}
                       onManage={onManage}
-                      onEdit={(newTopic) => onEditSubTopic(topic, newTopic)}
+                      onEdit={(newTopicTitle) => onEditSubTopic(topic.title, newTopicTitle)}
                       onExport={onExport}
                       onImport={onImport}
-                      isVisible={subTopicVisibility[topic] ?? true}
-                      onToggleVisibility={() => onToggleSubTopicVisibility(topic)}
+                      isVisible={subTopicVisibility[topic.title] ?? true}
+                      onToggleVisibility={() => onToggleSubTopicVisibility(topic.title)}
+                      contentPointVisibility={contentPointVisibility[topic.title] || {}}
+                      onToggleContentPointVisibility={(contentPoint) => onToggleContentPointVisibility(topic.title, contentPoint)}
                     />
-                  );
-                })}
+                  )
+                )}
             </ul>
            ) : (
             <p className="text-sm text-gray-500 text-center py-4">No sub-topics defined or all are currently hidden.</p>
            )}
            {isAdmin && (
-                <div className="mt-4">
+                <div className="mt-4 px-2">
                     <button onClick={handleAddSubTopicClick} className="w-full py-2 border-2 border-dashed border-gray-200 text-gray-500 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors">
                         + Add New Sub-Topic
                     </button>

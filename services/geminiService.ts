@@ -1,6 +1,6 @@
 // FIX: Import GenerateContentResponse to correctly type the API response.
 import { GoogleGenAI, Type, GenerateContentResponse } from '@google/genai';
-import type { Question } from '../types';
+import type { Question, SubTopic } from '../types';
 
 // FIX: Corrected generic type parameter from <T,> to <T> to fix type inference.
 const fetchWithTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
@@ -23,10 +23,10 @@ const fetchWithTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
 }
 
 
-export const generateQuestionsForModule = async (moduleTitle: string, subTopics: string[], specificSubTopic?: string | null): Promise<Omit<Question, 'id'>[]> => {
+export const generateQuestionsForModule = async (moduleTitle: string, subTopics: SubTopic[], specificSubTopic?: string | null, contentPoint?: string | null): Promise<Omit<Question, 'id'>[]> => {
   if (!process.env.API_KEY) {
     console.error("API_KEY environment variable not set.");
-    const topic = specificSubTopic || moduleTitle;
+    const topic = contentPoint || specificSubTopic || moduleTitle;
     // Return mock data if API key is not available
     return Promise.resolve([
         {
@@ -55,17 +55,32 @@ export const generateQuestionsForModule = async (moduleTitle: string, subTopics:
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
-    const prompt = specificSubTopic
+    const prompt = contentPoint && specificSubTopic
       ? `
-        Generate 10 multiple-choice quiz questions for the specific cybersecurity sub-topic: "${specificSubTopic}".
-        This sub-topic is part of the broader training module titled "${moduleTitle}".
-        Ensure the questions are highly relevant to the sub-topic.
+        Generate 5 highly specific multiple-choice quiz questions for the cybersecurity topic: "${contentPoint}".
+        This topic is part of the sub-topic "${specificSubTopic}" within the training module "${moduleTitle}".
+        Ensure the questions are laser-focused on "${contentPoint}".
         For each question, provide 4 options and clearly indicate the single correct answer.
         Return the result as a JSON array.
       `
+      : specificSubTopic
+      ? (() => {
+          const subTopicData = subTopics.find(st => st.title === specificSubTopic);
+          const contentPoints = subTopicData?.content && subTopicData.content.length > 0
+            ? `The questions should cover these specific points: ${subTopicData.content.join(', ')}.`
+            : '';
+          return `
+            Generate 10 multiple-choice quiz questions for the specific cybersecurity sub-topic: "${specificSubTopic}".
+            This sub-topic is part of the broader training module titled "${moduleTitle}".
+            Ensure the questions are highly relevant to the sub-topic.
+            ${contentPoints}
+            For each question, provide 4 options and clearly indicate the single correct answer.
+            Return the result as a JSON array.
+          `;
+        })()
       : `
         Generate ${subTopics.length} multiple-choice quiz questions for a cybersecurity training module titled "${moduleTitle}".
-        The questions should provide a broad overview, with one question dedicated to each of the following sub-topics: ${subTopics.join(', ')}.
+        The questions should provide a broad overview, with one question dedicated to each of the following sub-topics: ${subTopics.map(st => st.title).join(', ')}.
         For each question, provide 4 options and clearly indicate the single correct answer.
         Return the result as a JSON array.
       `;

@@ -8,20 +8,22 @@ interface DashboardProps {
   examTitle: string;
   modules: Module[];
   completedModules: Set<number>;
-  onStartQuiz: (module: Module, subTopic?: string) => void;
+  onStartQuiz: (module: Module, subTopic?: string, contentPoint?: string) => void;
   onResetProgress: () => void;
   isAdmin: boolean;
   onAdminLoginClick: () => void;
   onLogout: () => void;
-  onManageQuestions: (module: Module, subTopic: string) => void;
+  onManageQuestions: (module: Module, subTopic: string, contentPoint?: string) => void;
   onExportQuestions: () => void;
   onImportQuestions: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onExportSubTopic: (module: Module, subTopic: string) => void;
-  onImportSubTopic: (event: React.ChangeEvent<HTMLInputElement>, module: Module, subTopic: string) => void;
+  onExportTopic: (module: Module, subTopic: string, contentPoint?: string) => void;
+  onImportTopic: (event: React.ChangeEvent<HTMLInputElement>, module: Module, subTopic: string, contentPoint?: string) => void;
   moduleVisibility: { [moduleId: number]: boolean };
   onToggleModuleVisibility: (moduleId: number) => void;
   subTopicVisibility: { [moduleId: number]: { [subTopic: string]: boolean } };
   onToggleSubTopicVisibility: (moduleId: number, subTopic: string) => void;
+  contentPointVisibility: { [moduleId: number]: { [subTopic: string]: { [contentPoint: string]: boolean } } };
+  onToggleContentPointVisibility: (moduleId: number, subTopic: string, contentPoint: string) => void;
   onAddModule: (title: string) => void;
   onEditModule: (moduleId: number, newTitle: string) => void;
   onAddSubTopic: (moduleId: number, subTopic: string) => void;
@@ -32,9 +34,10 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ 
   examTitle, modules, completedModules, onStartQuiz, onResetProgress, 
   isAdmin, onAdminLoginClick, onLogout, onManageQuestions, 
-  onExportQuestions, onImportQuestions, onExportSubTopic, onImportSubTopic,
+  onExportQuestions, onImportQuestions, onExportTopic, onImportTopic,
   moduleVisibility, onToggleModuleVisibility,
   subTopicVisibility, onToggleSubTopicVisibility,
+  contentPointVisibility, onToggleContentPointVisibility,
   onAddModule, onEditModule, onAddSubTopic, onEditSubTopic, onReturnToHome
 }) => {
   const completedCount = completedModules.size;
@@ -129,16 +132,18 @@ const Dashboard: React.FC<DashboardProps> = ({
               key={module.id} 
               module={module}
               status={completedModules.has(module.id) ? 'completed' : 'not-started'} 
-              onStart={(subTopic) => onStartQuiz(module, subTopic)}
+              onStart={(subTopic, contentPoint) => onStartQuiz(module, subTopic, contentPoint)}
               isAdmin={isAdmin}
-              onManage={(subTopic) => onManageQuestions(module, subTopic)}
+              onManage={(subTopic, contentPoint) => onManageQuestions(module, subTopic, contentPoint)}
               onEdit={(newTitle) => onEditModule(module.id, newTitle)}
-              onExport={(subTopic) => onExportSubTopic(module, subTopic)}
-              onImport={(event, subTopic) => onImportSubTopic(event, module, subTopic)}
+              onExport={(subTopic, contentPoint) => onExportTopic(module, subTopic, contentPoint)}
+              onImport={(event, subTopic, contentPoint) => onImportTopic(event, module, subTopic, contentPoint)}
               isVisible={moduleVisibility[module.id]}
               onToggleVisibility={() => onToggleModuleVisibility(module.id)}
               subTopicVisibility={subTopicVisibility[module.id] || {}}
               onToggleSubTopicVisibility={(subTopic) => onToggleSubTopicVisibility(module.id, subTopic)}
+              contentPointVisibility={contentPointVisibility[module.id] || {}}
+              onToggleContentPointVisibility={(subTopic, contentPoint) => onToggleContentPointVisibility(module.id, subTopic, contentPoint)}
               onAddSubTopic={(subTopic) => onAddSubTopic(module.id, subTopic)}
               onEditSubTopic={(oldSubTopic, newSubTopic) => onEditSubTopic(module.id, oldSubTopic, newSubTopic)}
             />

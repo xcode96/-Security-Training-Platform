@@ -6,6 +6,7 @@ import Icon from './Icon';
 interface QuizViewProps {
   module: Module;
   subTopic?: string | null;
+  contentPoint?: string | null;
   questionBank: QuestionBank;
   onCompleteQuiz: (moduleId: number) => void;
 }
@@ -16,7 +17,7 @@ const CategoryTag: React.FC<{ children: React.ReactNode, color: string }> = ({ c
     </span>
 );
 
-const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, questionBank, onCompleteQuiz }) => {
+const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, questionBank, onCompleteQuiz }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -30,13 +31,22 @@ const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, questionBank, onC
     setIsLoading(true);
     setError(null);
     try {
-      // Check question bank first for specific sub-topic quizzes
-      const bankQuestions = subTopic ? questionBank[module.id]?.[subTopic] : undefined;
+      // For module-level quizzes, always generate
+      if (!subTopic) {
+        const generatedQuestions = await generateQuestionsForModule(module.title, module.subTopics);
+        setQuestions(generatedQuestions.map(q => ({ ...q, id: new Date().toISOString() + Math.random() })));
+        setIsLoading(false);
+        return;
+      }
       
+      // For sub-topic or content-point quizzes, check bank first
+      const topicIdentifier = contentPoint ? `${subTopic}::${contentPoint}` : subTopic;
+      const bankQuestions = questionBank[module.id]?.[topicIdentifier];
+
       if (bankQuestions && bankQuestions.length > 0) {
         setQuestions(bankQuestions);
       } else {
-        const generatedQuestions = await generateQuestionsForModule(module.title, module.subTopics, subTopic);
+        const generatedQuestions = await generateQuestionsForModule(module.title, module.subTopics, subTopic, contentPoint);
         if (generatedQuestions.length === 0) {
           throw new Error("No questions were generated. Please try again.");
         }
@@ -47,7 +57,7 @@ const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, questionBank, onC
     } finally {
       setIsLoading(false);
     }
-  }, [module.id, module.title, module.subTopics, subTopic, questionBank]);
+  }, [module.id, module.title, module.subTopics, subTopic, contentPoint, questionBank]);
 
   useEffect(() => {
     fetchQuestions();
@@ -104,7 +114,11 @@ const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, questionBank, onC
 
   const currentQuestion = questions[currentQuestionIndex];
   const progressPercentage = ((currentQuestionIndex + 1) / questions.length) * 100;
-  const quizTitle = subTopic ? `${module.title}: ${subTopic}` : module.title;
+  const quizTitle = contentPoint 
+    ? `${subTopic}: ${contentPoint}` 
+    : subTopic 
+    ? `${module.title}: ${subTopic}` 
+    : module.title;
   
   const getOptionClassName = (option: string) => {
     if (!answerChecked) {

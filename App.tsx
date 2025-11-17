@@ -6,7 +6,7 @@ import LoginView from './components/LoginView';
 import QuestionManager from './components/QuestionManager';
 import Home from './components/Home';
 import { INITIAL_EXAM_DATA } from './constants';
-import type { Module, QuestionBank, Question, Exam } from './types';
+import type { Module, QuestionBank, Question, Exam, SubTopic } from './types';
 
 type View = 'dashboard' | 'quiz' | 'completed' | 'home';
 
@@ -15,6 +15,7 @@ const App: React.FC = () => {
   const [activeExamId, setActiveExamId] = useState<number | null>(null);
   const [activeModule, setActiveModule] = useState<Module | null>(null);
   const [activeSubTopic, setActiveSubTopic] = useState<string | null>(null);
+  const [activeContentPoint, setActiveContentPoint] = useState<string | null>(null);
   const [completedModules, setCompletedModules] = useState<Set<number>>(new Set());
   
   // Admin and Question Bank State
@@ -24,6 +25,7 @@ const App: React.FC = () => {
   const [questionBank, setQuestionBank] = useState<QuestionBank>({});
   const [moduleVisibility, setModuleVisibility] = useState<{ [moduleId: number]: boolean }>({});
   const [subTopicVisibility, setSubTopicVisibility] = useState<{ [moduleId: number]: { [subTopic: string]: boolean } }>({});
+  const [contentPointVisibility, setContentPointVisibility] = useState<{ [moduleId: number]: { [subTopic: string]: { [contentPoint: string]: boolean } } }>({});
   const [exams, setExams] = useState<Exam[]>([]);
 
   // Load data from local storage on initial render
@@ -74,7 +76,7 @@ const App: React.FC = () => {
         const savedSubTopicVisibility = localStorage.getItem('subTopicVisibility');
         const initialSubTopicVisibility = allModules.reduce((acc, module) => {
             acc[module.id] = module.subTopics.reduce((subAcc, topic) => {
-                subAcc[topic] = true; // Default all to visible
+                subAcc[topic.title] = true; // Default all to visible
                 return subAcc;
             }, {} as { [subTopic: string]: boolean });
             return acc;
@@ -98,10 +100,53 @@ const App: React.FC = () => {
          console.error("Failed to load sub-topic visibility settings:", error);
          // Initialize with defaults on error
          const defaultVisibility = allModules.reduce((acc, module) => {
-            acc[module.id] = module.subTopics.reduce((subAcc, topic) => ({ ...subAcc, [topic]: true }), {});
+            acc[module.id] = module.subTopics.reduce((subAcc, topic) => ({ ...subAcc, [topic.title]: true }), {});
             return acc;
          }, {} as { [moduleId: number]: { [subTopic: string]: boolean } });
          setSubTopicVisibility(defaultVisibility);
+    }
+
+    // Load Content Point Visibility
+    try {
+        const savedContentPointVisibility = localStorage.getItem('contentPointVisibility');
+        const initialContentPointVisibility = allModules.reduce((acc, module) => {
+            acc[module.id] = module.subTopics.reduce((subAcc, topic) => {
+                subAcc[topic.title] = topic.content.reduce((contentAcc, point) => {
+                    contentAcc[point] = true; // Default all to visible
+                    return contentAcc;
+                }, {} as { [contentPoint: string]: boolean });
+                return subAcc;
+            }, {} as { [subTopic: string]: { [contentPoint: string]: boolean } });
+            return acc;
+        }, {} as { [moduleId: number]: { [subTopic: string]: { [contentPoint: string]: boolean } } });
+
+        if (savedContentPointVisibility) {
+            const parsed = JSON.parse(savedContentPointVisibility);
+            // Deep merge to handle new content points gracefully
+            Object.keys(initialContentPointVisibility).forEach(modIdStr => {
+                const modId = parseInt(modIdStr, 10);
+                if (parsed[modId]) {
+                    Object.keys(initialContentPointVisibility[modId]).forEach(subTopicTitle => {
+                        if (parsed[modId][subTopicTitle]) {
+                             initialContentPointVisibility[modId][subTopicTitle] = { ...initialContentPointVisibility[modId][subTopicTitle], ...parsed[modId][subTopicTitle] };
+                        }
+                    });
+                }
+            });
+            setContentPointVisibility(initialContentPointVisibility);
+        } else {
+            setContentPointVisibility(initialContentPointVisibility);
+        }
+    } catch (error) {
+        console.error("Failed to load content point visibility settings:", error);
+        const defaultVisibility = allModules.reduce((acc, module) => {
+            acc[module.id] = module.subTopics.reduce((subAcc, topic) => {
+                subAcc[topic.title] = topic.content.reduce((contentAcc, point) => ({ ...contentAcc, [point]: true }), {});
+                return subAcc;
+            }, {} as { [subTopic: string]: { [contentPoint: string]: boolean } });
+            return acc;
+        }, {} as { [moduleId: number]: { [subTopic: string]: { [contentPoint: string]: boolean } } });
+        setContentPointVisibility(defaultVisibility);
     }
 
   }, []);
@@ -113,23 +158,28 @@ const App: React.FC = () => {
     }
   }, [exams]);
 
+  const getTopicIdentifier = (subTopic: string, contentPoint?: string | null) => {
+    return contentPoint ? `${subTopic}::${contentPoint}` : subTopic;
+  };
 
-  const handleStartQuiz = useCallback((module: Module, subTopic?: string) => {
+  const handleStartQuiz = useCallback((module: Module, subTopic?: string, contentPoint?: string) => {
     setActiveModule(module);
     setActiveSubTopic(subTopic || null);
+    setActiveContentPoint(contentPoint || null);
     setCurrentView('quiz');
   }, []);
 
   const handleCompleteQuiz = useCallback((moduleId: number) => {
-    if (!activeSubTopic) {
+    if (!activeSubTopic && !activeContentPoint) {
       setCompletedModules(prev => new Set(prev).add(moduleId));
     }
     setCurrentView('completed');
-  }, [activeSubTopic]);
+  }, [activeSubTopic, activeContentPoint]);
 
   const handleReturnToDashboard = useCallback(() => {
     setActiveModule(null);
     setActiveSubTopic(null);
+    setActiveContentPoint(null);
     setQuestionManagerOpen(false);
     setCurrentView('dashboard');
   }, []);
@@ -151,9 +201,10 @@ const App: React.FC = () => {
     setIsAdmin(false);
   };
   
-  const handleManageQuestions = useCallback((module: Module, subTopic: string) => {
+  const handleManageQuestions = useCallback((module: Module, subTopic: string, contentPoint?: string) => {
     setActiveModule(module);
     setActiveSubTopic(subTopic);
+    setActiveContentPoint(contentPoint || null);
     setQuestionManagerOpen(true);
   }, []);
 
@@ -181,13 +232,26 @@ const App: React.FC = () => {
         return newVisibility;
     });
   }, []);
+  
+  const handleToggleContentPointVisibility = useCallback((moduleId: number, subTopic: string, contentPoint: string) => {
+    setContentPointVisibility(prev => {
+        const newVisibility = JSON.parse(JSON.stringify(prev)); // Deep copy
+        if (!newVisibility[moduleId]) newVisibility[moduleId] = {};
+        if (!newVisibility[moduleId][subTopic]) newVisibility[moduleId][subTopic] = {};
+        newVisibility[moduleId][subTopic][contentPoint] = !newVisibility[moduleId][subTopic][contentPoint];
+        localStorage.setItem('contentPointVisibility', JSON.stringify(newVisibility));
+        return newVisibility;
+    });
+  }, []);
 
-  const handleSaveQuestions = (moduleId: number, subTopic: string, questions: Question[]) => {
+  const handleSaveQuestions = (questions: Question[]) => {
+      if (!activeModule || !activeSubTopic) return;
+      const topicIdentifier = getTopicIdentifier(activeSubTopic, activeContentPoint);
       const newBank = { ...questionBank };
-      if (!newBank[moduleId]) {
-        newBank[moduleId] = {};
+      if (!newBank[activeModule.id]) {
+        newBank[activeModule.id] = {};
       }
-      newBank[moduleId][subTopic] = questions;
+      newBank[activeModule.id][topicIdentifier] = questions;
       updateQuestionBank(newBank);
   };
 
@@ -217,6 +281,12 @@ const App: React.FC = () => {
                 localStorage.setItem('subTopicVisibility', JSON.stringify(newVisibility));
                 return newVisibility;
             });
+            
+            setContentPointVisibility(prev => {
+                const newVisibility = { ...prev, [newModuleId]: {} };
+                localStorage.setItem('contentPointVisibility', JSON.stringify(newVisibility));
+                return newVisibility;
+            });
 
             return prevExams.map(exam => 
                 exam.id === activeExamId ? { ...exam, modules: [...exam.modules, newModule] } : exam
@@ -236,31 +306,41 @@ const App: React.FC = () => {
         );
     }, []);
 
-    const handleAddSubTopic = useCallback((moduleId: number, subTopic: string) => {
-        if (!subTopic || subTopic.trim() === '') return;
+    const handleAddSubTopic = useCallback((moduleId: number, subTopicTitle: string) => {
+        if (!subTopicTitle || subTopicTitle.trim() === '') return;
+        const trimmedTitle = subTopicTitle.trim();
 
         setExams(prevExams => 
             prevExams.map(exam => ({
                 ...exam,
                 modules: exam.modules.map(module => {
                     if (module.id === moduleId) {
-                        if (module.subTopics.includes(subTopic.trim())) {
+                        if (module.subTopics.some(st => st.title === trimmedTitle)) {
                             alert("Sub-topic with this name already exists in this module.");
                             return module;
                         }
+                        const newSubTopic: SubTopic = { title: trimmedTitle, content: [] };
                         const updatedModule = {
                             ...module,
-                            subTopics: [...module.subTopics, subTopic.trim()]
+                            subTopics: [...module.subTopics, newSubTopic]
                         };
 
                         setSubTopicVisibility(prev => {
                             const newVisibility = JSON.parse(JSON.stringify(prev));
                             if (!newVisibility[moduleId]) newVisibility[moduleId] = {};
-                            newVisibility[moduleId][subTopic.trim()] = true;
+                            newVisibility[moduleId][trimmedTitle] = true;
                             localStorage.setItem('subTopicVisibility', JSON.stringify(newVisibility));
                             return newVisibility;
                         });
                         
+                        setContentPointVisibility(prev => {
+                            const newVisibility = JSON.parse(JSON.stringify(prev));
+                            if (!newVisibility[moduleId]) newVisibility[moduleId] = {};
+                            newVisibility[moduleId][trimmedTitle] = {};
+                            localStorage.setItem('contentPointVisibility', JSON.stringify(newVisibility));
+                            return newVisibility;
+                        });
+
                         return updatedModule;
                     }
                     return module;
@@ -269,9 +349,9 @@ const App: React.FC = () => {
         );
     }, []);
     
-    const handleEditSubTopic = useCallback((moduleId: number, oldSubTopic: string, newSubTopic: string) => {
-        const trimmedNewSubTopic = newSubTopic.trim();
-        if (!trimmedNewSubTopic || oldSubTopic === trimmedNewSubTopic) return;
+    const handleEditSubTopic = useCallback((moduleId: number, oldSubTopicTitle: string, newSubTopicTitle: string) => {
+        const trimmedNewSubTopicTitle = newSubTopicTitle.trim();
+        if (!trimmedNewSubTopicTitle || oldSubTopicTitle === trimmedNewSubTopicTitle) return;
 
         let conflict = false;
         setExams(prevExams =>
@@ -279,14 +359,18 @@ const App: React.FC = () => {
                 ...exam,
                 modules: exam.modules.map(module => {
                     if (module.id === moduleId) {
-                        if (module.subTopics.includes(trimmedNewSubTopic)) {
+                        if (module.subTopics.some(st => st.title === trimmedNewSubTopicTitle)) {
                             alert("A sub-topic with this name already exists in this module.");
                             conflict = true;
                             return module;
                         }
                         return {
                             ...module,
-                            subTopics: module.subTopics.map(st => st === oldSubTopic ? trimmedNewSubTopic : st)
+                            subTopics: module.subTopics.map(st => 
+                                st.title === oldSubTopicTitle 
+                                    ? { ...st, title: trimmedNewSubTopicTitle } 
+                                    : st
+                            )
                         };
                     }
                     return module;
@@ -298,9 +382,14 @@ const App: React.FC = () => {
 
         setQuestionBank(prevBank => {
             const newBank = JSON.parse(JSON.stringify(prevBank));
-            if (newBank[moduleId]?.[oldSubTopic]) {
-                newBank[moduleId][trimmedNewSubTopic] = newBank[moduleId][oldSubTopic];
-                delete newBank[moduleId][oldSubTopic];
+            if (newBank[moduleId]) {
+                 Object.keys(newBank[moduleId]).forEach(key => {
+                    if (key.startsWith(`${oldSubTopicTitle}::`) || key === oldSubTopicTitle) {
+                        const newKey = key.replace(oldSubTopicTitle, trimmedNewSubTopicTitle);
+                        newBank[moduleId][newKey] = newBank[moduleId][key];
+                        delete newBank[moduleId][key];
+                    }
+                });
                 localStorage.setItem('questionBank', JSON.stringify(newBank));
             }
             return newBank;
@@ -308,10 +397,20 @@ const App: React.FC = () => {
 
         setSubTopicVisibility(prevVisibility => {
             const newVisibility = JSON.parse(JSON.stringify(prevVisibility));
-            if (newVisibility[moduleId]?.hasOwnProperty(oldSubTopic)) {
-                newVisibility[moduleId][trimmedNewSubTopic] = newVisibility[moduleId][oldSubTopic];
-                delete newVisibility[moduleId][oldSubTopic];
+            if (newVisibility[moduleId]?.hasOwnProperty(oldSubTopicTitle)) {
+                newVisibility[moduleId][trimmedNewSubTopicTitle] = newVisibility[moduleId][oldSubTopicTitle];
+                delete newVisibility[moduleId][oldSubTopicTitle];
                 localStorage.setItem('subTopicVisibility', JSON.stringify(newVisibility));
+            }
+            return newVisibility;
+        });
+
+        setContentPointVisibility(prevVisibility => {
+            const newVisibility = JSON.parse(JSON.stringify(prevVisibility));
+            if (newVisibility[moduleId]?.hasOwnProperty(oldSubTopicTitle)) {
+                newVisibility[moduleId][trimmedNewSubTopicTitle] = newVisibility[moduleId][oldSubTopicTitle];
+                delete newVisibility[moduleId][oldSubTopicTitle];
+                localStorage.setItem('contentPointVisibility', JSON.stringify(newVisibility));
             }
             return newVisibility;
         });
@@ -378,10 +477,11 @@ const App: React.FC = () => {
     reader.readAsText(file);
   }, [updateQuestionBank]);
 
-  const handleExportSubTopic = useCallback((module: Module, subTopic: string) => {
-    const questionsToExport = questionBank[module.id]?.[subTopic];
+  const handleExportTopic = useCallback((module: Module, subTopic: string, contentPoint?: string) => {
+    const topicIdentifier = getTopicIdentifier(subTopic, contentPoint);
+    const questionsToExport = questionBank[module.id]?.[topicIdentifier];
     if (!questionsToExport || questionsToExport.length === 0) {
-      alert(`No questions to export for ${subTopic}.`);
+      alert(`No questions to export for ${contentPoint || subTopic}.`);
       return;
     }
     const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
@@ -389,12 +489,12 @@ const App: React.FC = () => {
     )}`;
     const link = document.createElement("a");
     link.href = jsonString;
-    const safeFilename = subTopic.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const safeFilename = (contentPoint || subTopic).replace(/[^a-z0-9]/gi, '_').toLowerCase();
     link.download = `${safeFilename}_questions.json`;
     link.click();
   }, [questionBank]);
 
-  const handleImportSubTopic = useCallback((event: React.ChangeEvent<HTMLInputElement>, module: Module, subTopic: string) => {
+  const handleImportTopic = useCallback((event: React.ChangeEvent<HTMLInputElement>, module: Module, subTopic: string, contentPoint?: string) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -407,29 +507,29 @@ const App: React.FC = () => {
         }
         const importedQuestions = JSON.parse(text);
         
-        // Validate that it's an array of questions
         if (Array.isArray(importedQuestions) && (importedQuestions.length === 0 || (
             importedQuestions[0].id && 
             importedQuestions[0].question &&
             Array.isArray(importedQuestions[0].options) &&
             importedQuestions[0].correctAnswer
         ))) {
+            const topicIdentifier = getTopicIdentifier(subTopic, contentPoint);
             const newBank = { ...questionBank };
             if (!newBank[module.id]) {
                 newBank[module.id] = {};
             }
-            newBank[module.id][subTopic] = importedQuestions as Question[];
+            newBank[module.id][topicIdentifier] = importedQuestions as Question[];
             updateQuestionBank(newBank);
-            alert(`Successfully imported ${importedQuestions.length} questions for ${subTopic}.`);
+            alert(`Successfully imported ${importedQuestions.length} questions for ${contentPoint || subTopic}.`);
         } else {
           throw new Error("Invalid JSON format. File must contain an array of questions.");
         }
       } catch (error) {
         const err = error as Error;
-        console.error(`Failed to import questions for ${subTopic}:`, err);
+        const topicName = contentPoint || subTopic;
+        console.error(`Failed to import questions for ${topicName}:`, err);
         alert(`Failed to import questions. Please ensure the file is a valid JSON array of questions. Error: ${err.message}`);
       }
-      // Reset file input so the same file can be selected again
       event.target.value = '';
     };
     reader.readAsText(file);
@@ -449,10 +549,12 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     if (isQuestionManagerOpen && activeModule && activeSubTopic) {
+      const topicIdentifier = getTopicIdentifier(activeSubTopic, activeContentPoint);
       return <QuestionManager 
         module={activeModule}
         subTopic={activeSubTopic}
-        initialQuestions={questionBank[activeModule.id]?.[activeSubTopic] || []}
+        contentPoint={activeContentPoint}
+        initialQuestions={questionBank[activeModule.id]?.[topicIdentifier] || []}
         onSave={handleSaveQuestions}
         onClose={handleReturnToDashboard}
       />
@@ -460,9 +562,9 @@ const App: React.FC = () => {
 
     switch (currentView) {
       case 'quiz':
-        return activeModule && <QuizView module={activeModule} subTopic={activeSubTopic} questionBank={questionBank} onCompleteQuiz={handleCompleteQuiz} />;
+        return activeModule && <QuizView module={activeModule} subTopic={activeSubTopic} contentPoint={activeContentPoint} questionBank={questionBank} onCompleteQuiz={handleCompleteQuiz} />;
       case 'completed':
-        return activeModule && <QuizCompletedView moduleTitle={activeSubTopic || activeModule.title} onReturnToDashboard={handleReturnToDashboard} />;
+        return activeModule && <QuizCompletedView moduleTitle={activeContentPoint || activeSubTopic || activeModule.title} onReturnToDashboard={handleReturnToDashboard} />;
       case 'dashboard':
         if (activeExam) {
             return <Dashboard 
@@ -477,12 +579,14 @@ const App: React.FC = () => {
                   onManageQuestions={handleManageQuestions}
                   onExportQuestions={handleExportQuestions}
                   onImportQuestions={handleImportQuestions}
-                  onExportSubTopic={handleExportSubTopic}
-                  onImportSubTopic={handleImportSubTopic}
+                  onExportTopic={handleExportTopic}
+                  onImportTopic={handleImportTopic}
                   moduleVisibility={moduleVisibility}
                   onToggleModuleVisibility={handleToggleModuleVisibility}
                   subTopicVisibility={subTopicVisibility}
                   onToggleSubTopicVisibility={handleToggleSubTopicVisibility}
+                  contentPointVisibility={contentPointVisibility}
+                  onToggleContentPointVisibility={handleToggleContentPointVisibility}
                   onAddModule={handleAddModule}
                   onEditModule={handleEditModule}
                   onAddSubTopic={handleAddSubTopic}

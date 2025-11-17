@@ -1,9 +1,14 @@
+export interface SubTopic {
+  title: string;
+  content: string[];
+}
+
 export interface Module {
   id: number;
   title: string;
   icon: IconName;
   color: string;
-  subTopics: string[];
+  subTopics: SubTopic[];
 }
 
 export interface Exam {
@@ -22,7 +27,7 @@ export interface Question {
 
 export type QuestionBank = {
   [moduleId: number]: {
-    [subTopic: string]: Question[];
+    [topicIdentifier: string]: Question[];
   };
 };
 
@@ -32,6 +37,7 @@ export type IconName =
   'laptop' | 'database' | 'footprint' | 'scan' |
   'bug' | 'wifi' | 'ban' | 'server' | 'code-bracket' |
   'iot' | 'cloud' | 'chevron-down' | 'sparkles' |
-  'upload' | 'download' | 'eye' | 'eye-slash' | 'edit' | 'book-open';
+  'upload' | 'download' | 'eye' | 'eye-slash' | 'edit' | 
+  'book-open' | 'folder' | 'folder-open';
 
 export type ModuleStatus = 'completed' | 'in-progress' | 'not-started';
