@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import ProgressCircle from './ProgressCircle';
 import ModuleListItem from './ModuleListItem';
 import Icon from './Icon';
-import type { Module } from '../types';
+import type { Module, QuestionBank } from '../types';
 
 interface DashboardProps {
   examTitle: string;
@@ -28,6 +28,7 @@ interface DashboardProps {
   onEditModule: (moduleId: number, newTitle: string) => void;
   onAddSubTopic: (moduleId: number, subTopic: string) => void;
   onEditSubTopic: (moduleId: number, oldSubTopic: string, newSubTopic: string) => void;
+  questionBank: QuestionBank;
   onReturnToHome: () => void;
 }
 
@@ -38,7 +39,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   moduleVisibility, onToggleModuleVisibility,
   subTopicVisibility, onToggleSubTopicVisibility,
   contentPointVisibility, onToggleContentPointVisibility,
-  onAddModule, onEditModule, onAddSubTopic, onEditSubTopic, onReturnToHome
+  onAddModule, onEditModule, onAddSubTopic, onEditSubTopic, questionBank, onReturnToHome
 }) => {
   const completedCount = completedModules.size;
   const totalModules = modules.length;
@@ -63,7 +64,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       {/* Left Sidebar */}
       <aside className="w-full lg:w-1/4 bg-white p-6 lg:p-8 border-b lg:border-r border-gray-100 flex flex-col items-center text-center">
         <h2 className="text-sm text-gray-500">Welcome</h2>
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">{isAdmin ? 'Admin User' : 'Demo User'}</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">{isAdmin ? 'Admin User' : 'XCODE96'}</h1>
         
         {!isAdmin && (
           <>
@@ -131,6 +132,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             <ModuleListItem 
               key={module.id} 
               module={module}
+              questionBank={questionBank}
               status={completedModules.has(module.id) ? 'completed' : 'not-started'} 
               onStart={(subTopic, contentPoint) => onStartQuiz(module, subTopic, contentPoint)}
               isAdmin={isAdmin}

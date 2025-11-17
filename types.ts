@@ -39,6 +39,6 @@ export type IconName =
   'bug' | 'wifi' | 'ban' | 'server' | 'code-bracket' |
   'iot' | 'cloud' | 'chevron-down' | 'sparkles' |
   'upload' | 'download' | 'eye' | 'eye-slash' | 'edit' | 
-  'book-open' | 'folder' | 'folder-open';
+  'book-open' | 'folder' | 'folder-open' | 'github' | 'linkedin';
 
 export type ModuleStatus = 'completed' | 'in-progress' | 'not-started';

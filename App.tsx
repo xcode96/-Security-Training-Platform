@@ -5,6 +5,7 @@ import QuizCompletedView from './components/QuizCompletedView';
 import LoginView from './components/LoginView';
 import QuestionManager from './components/QuestionManager';
 import Home from './components/Home';
+import Footer from './components/Footer';
 import { INITIAL_EXAM_DATA } from './constants';
 import type { Module, QuestionBank, Question, Exam, SubTopic } from './types';
 
@@ -591,6 +592,7 @@ const App: React.FC = () => {
                   onEditModule={handleEditModule}
                   onAddSubTopic={handleAddSubTopic}
                   onEditSubTopic={handleEditSubTopic}
+                  questionBank={questionBank}
                   onReturnToHome={handleReturnToHome}
                 />;
         }
@@ -613,8 +615,11 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-purple-50 flex items-center justify-center p-4 sm:p-6 lg:p-8">
-      {renderContent()}
+    <div className="min-h-screen bg-gradient-to-br from-white to-purple-50 flex flex-col justify-between p-4 sm:p-6 lg:p-8">
+      <div className="flex-grow flex items-center justify-center w-full">
+        {renderContent()}
+      </div>
+      <Footer />
       {isLoginModalOpen && <LoginView onLogin={handleAdminLogin} onClose={() => setLoginModalOpen(false)} />}
     </div>
   );

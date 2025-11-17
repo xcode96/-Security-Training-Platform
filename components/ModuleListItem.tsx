@@ -1,10 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import Icon from './Icon';
-import type { Module, ModuleStatus, SubTopic } from '../types';
+import type { Module, ModuleStatus, QuestionBank, SubTopic } from '../types';
 
 interface ModuleListItemProps {
   module: Module;
   status: ModuleStatus;
+  questionBank: QuestionBank;
   onStart: (subTopic?: string, contentPoint?: string) => void;
   isAdmin: boolean;
   onManage: (subTopic: string, contentPoint?: string) => void;
@@ -205,12 +206,20 @@ const SubTopicItem: React.FC<{
 
 
 const ModuleListItem: React.FC<ModuleListItemProps> = ({ 
-    module, status, onStart, isAdmin, onManage, onEdit, onExport, onImport, isVisible, 
+    module, status, questionBank, onStart, isAdmin, onManage, onEdit, onExport, onImport, isVisible, 
     onToggleVisibility, subTopicVisibility, onToggleSubTopicVisibility, 
     contentPointVisibility, onToggleContentPointVisibility,
     onAddSubTopic, onEditSubTopic
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  
+  const totalCustomQuestions = useMemo(() => {
+    const moduleQuestions = questionBank[module.id];
+    if (!moduleQuestions) {
+      return 0;
+    }
+    return Object.values(moduleQuestions).reduce((sum, questionsArray) => sum + (questionsArray?.length || 0), 0);
+  }, [questionBank, module.id]);
 
   const handleAddSubTopicClick = () => {
     const name = window.prompt("Enter the name for the new sub-topic:");
@@ -237,7 +246,15 @@ const ModuleListItem: React.FC<ModuleListItemProps> = ({
       case 'in-progress':
         return <span className="text-xs font-semibold text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">In Progress</span>;
       default:
-        return <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-1 rounded-full">Not Started</span>;
+        return (
+            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                totalCustomQuestions > 0 
+                ? 'text-sky-600 bg-sky-100' 
+                : 'text-gray-500 bg-gray-100'
+            }`}>
+                {totalCustomQuestions} Question{totalCustomQuestions !== 1 ? 's' : ''}
+            </span>
+        );
     }
   };
 

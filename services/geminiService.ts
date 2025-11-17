@@ -246,3 +246,51 @@ export const generateExplanationForAnswer = async (question: string, correctAnsw
         throw new Error("Failed to generate explanation.");
     }
 };
+
+export const generateTagsForQuestion = async (question: string, topic: string): Promise<string[]> => {
+    if (!process.env.API_KEY) {
+        // Return some default tags if API key is not configured
+        return ["#cybersecurity", "#infosec", "#quiz"];
+    }
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const prompt = `
+            Based on the following cybersecurity quiz question and its general topic, generate 3 to 5 relevant and concise hashtags.
+            The hashtags should start with '#'.
+            These tags will be used for categorization and search.
+            Topic: "${topic}"
+            Question: "${question}"
+            
+            Return the result as a JSON array of strings. For example: ["#RiskManagement", "#CIA_Triad", "#SecurityPolicy"].
+        `;
+
+        const responsePromise = ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.STRING
+                    }
+                }
+            }
+        });
+
+        const response: GenerateContentResponse = await fetchWithTimeout(responsePromise, 5000);
+        const jsonText = response.text.trim();
+        const tags: string[] = JSON.parse(jsonText);
+        
+        if (!Array.isArray(tags) || (tags.length > 0 && typeof tags[0] !== 'string')) {
+            throw new Error("Invalid format received from API for tags");
+        }
+        
+        return tags;
+
+    } catch (error) {
+        console.error('Error generating tags with Gemini:', error);
+        // Fallback to generic tags on error
+        return ["#cybersecurity", `#${topic.replace(/\s+/g, '')}`];
+    }
+};

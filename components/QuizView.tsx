@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Module, Question, QuestionBank } from '../types';
-import { generateQuestionsForModule, generateExplanationForAnswer, generateExplanationForQuestion } from '../services/geminiService';
+import { generateQuestionsForModule, generateExplanationForAnswer, generateExplanationForQuestion, generateTagsForQuestion } from '../services/geminiService';
 import Icon from './Icon';
 
 interface QuizViewProps {
@@ -17,6 +17,16 @@ const CategoryTag: React.FC<{ children: React.ReactNode, color: string }> = ({ c
     </span>
 );
 
+const tagColors = [
+    "bg-blue-100 text-blue-800",
+    "bg-green-100 text-green-800",
+    "bg-yellow-100 text-yellow-800",
+    "bg-purple-100 text-purple-800",
+    "bg-pink-100 text-pink-800",
+    "bg-red-100 text-red-800",
+    "bg-indigo-100 text-indigo-800",
+];
+
 const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, questionBank, onCompleteQuiz }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -28,6 +38,8 @@ const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, que
   const [isQuestionExplanationLoading, setIsQuestionExplanationLoading] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
+  const [isTagsLoading, setIsTagsLoading] = useState(false);
 
   const fetchQuestions = useCallback(async () => {
     setIsLoading(true);
@@ -64,6 +76,32 @@ const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, que
   useEffect(() => {
     fetchQuestions();
   }, [fetchQuestions]);
+  
+  const quizTitle = contentPoint 
+    ? `${subTopic}: ${contentPoint}` 
+    : subTopic 
+    ? `${module.title}: ${subTopic}` 
+    : module.title;
+
+  useEffect(() => {
+    if (questions.length > 0 && currentQuestionIndex < questions.length) {
+        const currentQuestion = questions[currentQuestionIndex];
+        const fetchTags = async () => {
+            setIsTagsLoading(true);
+            setTags([]);
+            try {
+                const generatedTags = await generateTagsForQuestion(currentQuestion.question, quizTitle);
+                setTags(generatedTags);
+            } catch (e) {
+                console.error("Failed to fetch tags", e);
+                setTags([]); // set empty on error
+            } finally {
+                setIsTagsLoading(false);
+            }
+        };
+        fetchTags();
+    }
+  }, [currentQuestionIndex, questions, quizTitle]);
 
   const handleCheckAnswer = async () => {
     if (!selectedAnswer) return;
@@ -140,11 +178,6 @@ const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, que
 
   const currentQuestion = questions[currentQuestionIndex];
   const progressPercentage = ((currentQuestionIndex + 1) / questions.length) * 100;
-  const quizTitle = contentPoint 
-    ? `${subTopic}: ${contentPoint}` 
-    : subTopic 
-    ? `${module.title}: ${subTopic}` 
-    : module.title;
   
   const getOptionClassName = (option: string) => {
     if (!answerChecked) {
@@ -174,12 +207,14 @@ const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, que
         <p className="text-sm text-gray-500">Question {currentQuestionIndex + 1} of {questions.length}</p>
       </div>
 
-      <div className="mb-4 flex flex-wrap justify-center gap-2">
-            <CategoryTag color="bg-blue-100 text-blue-800">#SecurityPolicy</CategoryTag>
-            <CategoryTag color="bg-green-100 text-green-800">#RiskProcess</CategoryTag>
-            <CategoryTag color="bg-yellow-100 text-yellow-800">#KnownCompliance</CategoryTag>
-            <CategoryTag color="bg-red-100 text-red-800">#ThreatVectorInfo</CategoryTag>
-            <CategoryTag color="bg-purple-100 text-purple-800">#PotentialFraud</CategoryTag>
+      <div className="mb-4 flex flex-wrap justify-center gap-2 min-h-[30px]">
+        {isTagsLoading ? (
+            <span className="text-sm text-gray-400 animate-pulse">Generating tags...</span>
+        ) : (
+            tags.map((tag, index) => (
+                <CategoryTag key={index} color={tagColors[index % tagColors.length]}>{tag}</CategoryTag>
+            ))
+        )}
       </div>
 
       <h3 className="text-xl font-bold text-gray-800 my-8 text-center">{currentQuestion.question}</h3>
