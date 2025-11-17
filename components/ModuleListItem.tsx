@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import Icon from './Icon';
 import type { Module, ModuleStatus } from '../types';
@@ -16,6 +17,7 @@ interface ModuleListItemProps {
   subTopicVisibility: { [subTopic: string]: boolean };
   onToggleSubTopicVisibility: (subTopic: string) => void;
   onAddSubTopic: (subTopic: string) => void;
+  onEditSubTopic: (oldSubTopic: string, newSubTopic: string) => void;
 }
 
 const SubTopicItem: React.FC<{
@@ -23,22 +25,38 @@ const SubTopicItem: React.FC<{
   isAdmin: boolean;
   onStart: (topic: string) => void;
   onManage: (topic: string) => void;
+  onEdit: (newTopic: string) => void;
   onExport: (topic: string) => void;
   onImport: (event: React.ChangeEvent<HTMLInputElement>, topic: string) => void;
   isVisible: boolean;
   onToggleVisibility: () => void;
-}> = ({ topic, isAdmin, onStart, onManage, onExport, onImport, isVisible, onToggleVisibility }) => {
+}> = ({ topic, isAdmin, onStart, onManage, onEdit, onExport, onImport, isVisible, onToggleVisibility }) => {
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const handleImportClick = () => {
     importInputRef.current?.click();
   };
 
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newName = window.prompt("Enter new name for sub-topic:", topic);
+    if (newName && newName.trim() !== '' && newName.trim() !== topic) {
+        onEdit(newName);
+    }
+  };
+
   return (
     <li className={`flex items-center justify-between py-1 px-2 rounded-md hover:bg-indigo-50 transition-all duration-200 group ${isAdmin && !isVisible ? 'opacity-40' : ''}`}>
       <div className="flex items-start">
           <span className="text-indigo-400 mr-2 mt-1">&bull;</span>
-          <span className="text-sm text-gray-600 group-hover:text-indigo-800">{topic}</span>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-gray-600 group-hover:text-indigo-800">{topic}</span>
+            {isAdmin && (
+                <button onClick={handleEdit} title="Edit sub-topic name" className="p-1 rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Icon iconName="edit" className="h-3 w-3" />
+                </button>
+            )}
+          </div>
       </div>
       <div className="flex items-center gap-2">
         {isAdmin ? (
@@ -91,7 +109,7 @@ const SubTopicItem: React.FC<{
 
 const ModuleListItem: React.FC<ModuleListItemProps> = ({ 
     module, status, onStart, isAdmin, onManage, onEdit, onExport, onImport, isVisible, 
-    onToggleVisibility, subTopicVisibility, onToggleSubTopicVisibility, onAddSubTopic 
+    onToggleVisibility, subTopicVisibility, onToggleSubTopicVisibility, onAddSubTopic, onEditSubTopic
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -206,6 +224,7 @@ const ModuleListItem: React.FC<ModuleListItemProps> = ({
                       isAdmin={isAdmin}
                       onStart={onStart}
                       onManage={onManage}
+                      onEdit={(newTopic) => onEditSubTopic(topic, newTopic)}
                       onExport={onExport}
                       onImport={onImport}
                       isVisible={subTopicVisibility[topic] ?? true}

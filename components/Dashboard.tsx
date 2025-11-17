@@ -1,3 +1,4 @@
+
 import React, { useRef } from 'react';
 import ProgressCircle from './ProgressCircle';
 import ModuleListItem from './ModuleListItem';
@@ -24,6 +25,7 @@ interface DashboardProps {
   onAddModule: (title: string) => void;
   onEditModule: (moduleId: number, newTitle: string) => void;
   onAddSubTopic: (moduleId: number, subTopic: string) => void;
+  onEditSubTopic: (moduleId: number, oldSubTopic: string, newSubTopic: string) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
@@ -32,7 +34,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   onExportQuestions, onImportQuestions, onExportSubTopic, onImportSubTopic,
   moduleVisibility, onToggleModuleVisibility,
   subTopicVisibility, onToggleSubTopicVisibility,
-  onAddModule, onEditModule, onAddSubTopic
+  onAddModule, onEditModule, onAddSubTopic, onEditSubTopic
 }) => {
   const completedCount = completedModules.size;
   const totalModules = modules.length;
@@ -132,6 +134,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               subTopicVisibility={subTopicVisibility[module.id] || {}}
               onToggleSubTopicVisibility={(subTopic) => onToggleSubTopicVisibility(module.id, subTopic)}
               onAddSubTopic={(subTopic) => onAddSubTopic(module.id, subTopic)}
+              onEditSubTopic={(oldSubTopic, newSubTopic) => onEditSubTopic(module.id, oldSubTopic, newSubTopic)}
             />
           ))}
         </div>

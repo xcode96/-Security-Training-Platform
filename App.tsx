@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import Dashboard from './components/Dashboard';
 import QuizView from './components/QuizView';
@@ -255,6 +256,52 @@ const App: React.FC = () => {
             })
         );
     }, []);
+    
+    const handleEditSubTopic = useCallback((moduleId: number, oldSubTopic: string, newSubTopic: string) => {
+        const trimmedNewSubTopic = newSubTopic.trim();
+        if (!trimmedNewSubTopic || oldSubTopic === trimmedNewSubTopic) return;
+
+        let conflict = false;
+        setModules(prevModules =>
+            prevModules.map(module => {
+                if (module.id === moduleId) {
+                    if (module.subTopics.includes(trimmedNewSubTopic)) {
+                        alert("A sub-topic with this name already exists in this module.");
+                        conflict = true;
+                        return module;
+                    }
+                    return {
+                        ...module,
+                        subTopics: module.subTopics.map(st => st === oldSubTopic ? trimmedNewSubTopic : st)
+                    };
+                }
+                return module;
+            })
+        );
+        
+        if (conflict) return;
+
+        setQuestionBank(prevBank => {
+            const newBank = JSON.parse(JSON.stringify(prevBank));
+            if (newBank[moduleId]?.[oldSubTopic]) {
+                newBank[moduleId][trimmedNewSubTopic] = newBank[moduleId][oldSubTopic];
+                delete newBank[moduleId][oldSubTopic];
+                localStorage.setItem('questionBank', JSON.stringify(newBank));
+            }
+            return newBank;
+        });
+
+        setSubTopicVisibility(prevVisibility => {
+            const newVisibility = JSON.parse(JSON.stringify(prevVisibility));
+            if (newVisibility[moduleId]?.hasOwnProperty(oldSubTopic)) {
+                newVisibility[moduleId][trimmedNewSubTopic] = newVisibility[moduleId][oldSubTopic];
+                delete newVisibility[moduleId][oldSubTopic];
+                localStorage.setItem('subTopicVisibility', JSON.stringify(newVisibility));
+            }
+            return newVisibility;
+        });
+
+    }, []);
 
   const handleExportQuestions = useCallback(() => {
     if (Object.keys(questionBank).length === 0) {
@@ -397,6 +444,7 @@ const App: React.FC = () => {
                   onAddModule={handleAddModule}
                   onEditModule={handleEditModule}
                   onAddSubTopic={handleAddSubTopic}
+                  onEditSubTopic={handleEditSubTopic}
                 />;
     }
   };
