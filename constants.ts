@@ -1,7 +1,7 @@
 
 import type { Module } from './types';
 
-export const MODULE_DATA: Module[] = [
+export const INITIAL_MODULE_DATA: Module[] = [
     {
         id: 1,
         title: "Introduction to Ethical Hacking",

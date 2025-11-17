@@ -12,6 +12,9 @@ interface ModuleListItemProps {
   onImport: (event: React.ChangeEvent<HTMLInputElement>, subTopic: string) => void;
   isVisible: boolean;
   onToggleVisibility: () => void;
+  subTopicVisibility: { [subTopic: string]: boolean };
+  onToggleSubTopicVisibility: (subTopic: string) => void;
+  onAddSubTopic: (subTopic: string) => void;
 }
 
 const SubTopicItem: React.FC<{
@@ -21,7 +24,9 @@ const SubTopicItem: React.FC<{
   onManage: (topic: string) => void;
   onExport: (topic: string) => void;
   onImport: (event: React.ChangeEvent<HTMLInputElement>, topic: string) => void;
-}> = ({ topic, isAdmin, onStart, onManage, onExport, onImport }) => {
+  isVisible: boolean;
+  onToggleVisibility: () => void;
+}> = ({ topic, isAdmin, onStart, onManage, onExport, onImport, isVisible, onToggleVisibility }) => {
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const handleImportClick = () => {
@@ -29,7 +34,7 @@ const SubTopicItem: React.FC<{
   };
 
   return (
-    <li className="flex items-center justify-between py-1 px-2 rounded-md hover:bg-indigo-50 transition-colors duration-200 group">
+    <li className={`flex items-center justify-between py-1 px-2 rounded-md hover:bg-indigo-50 transition-all duration-200 group ${isAdmin && !isVisible ? 'opacity-40' : ''}`}>
       <div className="flex items-start">
           <span className="text-indigo-400 mr-2 mt-1">&bull;</span>
           <span className="text-sm text-gray-600 group-hover:text-indigo-800">{topic}</span>
@@ -37,6 +42,16 @@ const SubTopicItem: React.FC<{
       <div className="flex items-center gap-2">
         {isAdmin ? (
           <>
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleVisibility();
+                }}
+                title={isVisible ? 'Hide sub-topic from users' : 'Show sub-topic to users'}
+                className="p-1 text-gray-400 hover:text-gray-700"
+            >
+                <Icon iconName={isVisible ? 'eye' : 'eye-slash'} className="h-4 w-4" />
+            </button>
             <input
               type="file"
               ref={importInputRef}
@@ -73,8 +88,18 @@ const SubTopicItem: React.FC<{
 };
 
 
-const ModuleListItem: React.FC<ModuleListItemProps> = ({ module, status, onStart, isAdmin, onManage, onExport, onImport, isVisible, onToggleVisibility }) => {
+const ModuleListItem: React.FC<ModuleListItemProps> = ({ 
+    module, status, onStart, isAdmin, onManage, onExport, onImport, isVisible, 
+    onToggleVisibility, subTopicVisibility, onToggleSubTopicVisibility, onAddSubTopic 
+}) => {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleAddSubTopicClick = () => {
+    const name = window.prompt("Enter the name for the new sub-topic:");
+    if (name) {
+      onAddSubTopic(name);
+    }
+  };
 
   const getStatusBadge = () => {
     if (isAdmin) {
@@ -89,6 +114,8 @@ const ModuleListItem: React.FC<ModuleListItemProps> = ({ module, status, onStart
         return <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-1 rounded-full">Not Started</span>;
     }
   };
+
+  const visibleSubTopics = isAdmin ? module.subTopics : module.subTopics.filter(topic => subTopicVisibility[topic] !== false);
 
   return (
     <div className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 ${isAdmin && !isVisible ? 'opacity-50' : ''}`}>
@@ -146,19 +173,37 @@ const ModuleListItem: React.FC<ModuleListItemProps> = ({ module, status, onStart
       {isExpanded && (
         <div id={`module-content-${module.id}`} className="px-6 pb-4 pt-0 border-t border-gray-100">
           <h4 className="text-sm font-semibold text-gray-700 my-3">Sub-Topics Covered:</h4>
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-            {module.subTopics.map((topic, index) => (
-              <SubTopicItem
-                key={index}
-                topic={topic}
-                isAdmin={isAdmin}
-                onStart={onStart}
-                onManage={onManage}
-                onExport={onExport}
-                onImport={onImport}
-              />
-            ))}
-          </ul>
+           {visibleSubTopics.length > 0 ? (
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                {module.subTopics.map((topic, index) => {
+                  const isSubTopicVisible = isAdmin || (subTopicVisibility[topic] !== false);
+                  if (!isSubTopicVisible) return null;
+                  
+                  return (
+                    <SubTopicItem
+                      key={index}
+                      topic={topic}
+                      isAdmin={isAdmin}
+                      onStart={onStart}
+                      onManage={onManage}
+                      onExport={onExport}
+                      onImport={onImport}
+                      isVisible={subTopicVisibility[topic] ?? true}
+                      onToggleVisibility={() => onToggleSubTopicVisibility(topic)}
+                    />
+                  );
+                })}
+            </ul>
+           ) : (
+            <p className="text-sm text-gray-500 text-center py-4">No sub-topics defined or all are currently hidden.</p>
+           )}
+           {isAdmin && (
+                <div className="mt-4">
+                    <button onClick={handleAddSubTopicClick} className="w-full py-2 border-2 border-dashed border-gray-200 text-gray-500 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors">
+                        + Add New Sub-Topic
+                    </button>
+                </div>
+            )}
         </div>
       )}
     </div>

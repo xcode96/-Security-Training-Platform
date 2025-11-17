@@ -19,13 +19,19 @@ interface DashboardProps {
   onImportSubTopic: (event: React.ChangeEvent<HTMLInputElement>, module: Module, subTopic: string) => void;
   moduleVisibility: { [moduleId: number]: boolean };
   onToggleModuleVisibility: (moduleId: number) => void;
+  subTopicVisibility: { [moduleId: number]: { [subTopic: string]: boolean } };
+  onToggleSubTopicVisibility: (moduleId: number, subTopic: string) => void;
+  onAddModule: (title: string) => void;
+  onAddSubTopic: (moduleId: number, subTopic: string) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
   modules, completedModules, onStartQuiz, onResetProgress, 
   isAdmin, onAdminLoginClick, onLogout, onManageQuestions, 
   onExportQuestions, onImportQuestions, onExportSubTopic, onImportSubTopic,
-  moduleVisibility, onToggleModuleVisibility
+  moduleVisibility, onToggleModuleVisibility,
+  subTopicVisibility, onToggleSubTopicVisibility,
+  onAddModule, onAddSubTopic
 }) => {
   const completedCount = completedModules.size;
   const totalModules = modules.length;
@@ -34,6 +40,13 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const handleImportClick = () => {
     importInputRef.current?.click();
+  };
+
+  const handleAddModuleClick = () => {
+    const title = window.prompt("Enter the title for the new module:");
+    if (title) {
+        onAddModule(title);
+    }
   };
 
   const visibleModules = isAdmin ? modules : modules.filter(m => moduleVisibility[m.id] !== false);
@@ -114,9 +127,19 @@ const Dashboard: React.FC<DashboardProps> = ({
               onImport={(event, subTopic) => onImportSubTopic(event, module, subTopic)}
               isVisible={moduleVisibility[module.id]}
               onToggleVisibility={() => onToggleModuleVisibility(module.id)}
+              subTopicVisibility={subTopicVisibility[module.id] || {}}
+              onToggleSubTopicVisibility={(subTopic) => onToggleSubTopicVisibility(module.id, subTopic)}
+              onAddSubTopic={(subTopic) => onAddSubTopic(module.id, subTopic)}
             />
           ))}
         </div>
+        {isAdmin && (
+            <div className="mt-6">
+                <button onClick={handleAddModuleClick} className="w-full py-3 border-2 border-dashed border-gray-300 text-gray-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors duration-300">
+                    + Add New Module (Folder)
+                </button>
+            </div>
+        )}
         {!isAdmin && <p className="text-center text-gray-400 mt-10 text-sm">Complete all modules to unlock your final report.</p>}
       </main>
     </div>

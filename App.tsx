@@ -4,7 +4,7 @@ import QuizView from './components/QuizView';
 import QuizCompletedView from './components/QuizCompletedView';
 import LoginView from './components/LoginView';
 import QuestionManager from './components/QuestionManager';
-import { MODULE_DATA } from './constants';
+import { INITIAL_MODULE_DATA } from './constants';
 import type { Module, QuestionBank, Question } from './types';
 
 type View = 'dashboard' | 'quiz' | 'completed';
@@ -21,10 +21,20 @@ const App: React.FC = () => {
   const [isQuestionManagerOpen, setQuestionManagerOpen] = useState(false);
   const [questionBank, setQuestionBank] = useState<QuestionBank>({});
   const [moduleVisibility, setModuleVisibility] = useState<{ [moduleId: number]: boolean }>({});
-
+  const [subTopicVisibility, setSubTopicVisibility] = useState<{ [moduleId: number]: { [subTopic: string]: boolean } }>({});
+  const [modules, setModules] = useState<Module[]>([]);
 
   // Load data from local storage on initial render
   useEffect(() => {
+    // Load Modules
+    try {
+        const savedModules = localStorage.getItem('modules');
+        setModules(savedModules ? JSON.parse(savedModules) : INITIAL_MODULE_DATA);
+    } catch(e) {
+        console.error("Failed to load modules from local storage", e);
+        setModules(INITIAL_MODULE_DATA);
+    }
+    
     // Load Question Bank
     try {
       const savedBank = localStorage.getItem('questionBank');
@@ -38,7 +48,7 @@ const App: React.FC = () => {
     // Load Module Visibility
     try {
         const savedVisibility = localStorage.getItem('moduleVisibility');
-        const initialVisibility = MODULE_DATA.reduce((acc, module) => {
+        const initialVisibility = INITIAL_MODULE_DATA.reduce((acc, module) => {
             acc[module.id] = true; // Default to visible
             return acc;
         }, {} as { [moduleId: number]: boolean });
@@ -51,12 +61,55 @@ const App: React.FC = () => {
         }
     } catch (error) {
         console.error("Failed to load module visibility settings:", error);
-        const defaultVisibility = MODULE_DATA.reduce((acc, module) => ({ ...acc, [module.id]: true }), {});
+        const defaultVisibility = INITIAL_MODULE_DATA.reduce((acc, module) => ({ ...acc, [module.id]: true }), {});
         setModuleVisibility(defaultVisibility);
     }
+    
+    // Load Sub-Topic Visibility
+    try {
+        const savedSubTopicVisibility = localStorage.getItem('subTopicVisibility');
+        const initialSubTopicVisibility = INITIAL_MODULE_DATA.reduce((acc, module) => {
+            acc[module.id] = module.subTopics.reduce((subAcc, topic) => {
+                subAcc[topic] = true; // Default all to visible
+                return subAcc;
+            }, {} as { [subTopic: string]: boolean });
+            return acc;
+        }, {} as { [moduleId: number]: { [subTopic: string]: boolean } });
+        
+        if (savedSubTopicVisibility) {
+            const parsed = JSON.parse(savedSubTopicVisibility);
+            // Deep merge to handle new subtopics gracefully
+            Object.keys(initialSubTopicVisibility).forEach(modId => {
+                const modIdNum = parseInt(modId, 10);
+                if (parsed[modIdNum]) {
+                    initialSubTopicVisibility[modIdNum] = { ...initialSubTopicVisibility[modIdNum], ...parsed[modIdNum] };
+                }
+            });
+            setSubTopicVisibility(initialSubTopicVisibility);
+        } else {
+            setSubTopicVisibility(initialSubTopicVisibility);
+        }
+
+    } catch (error) {
+         console.error("Failed to load sub-topic visibility settings:", error);
+         // Initialize with defaults on error
+         const defaultVisibility = INITIAL_MODULE_DATA.reduce((acc, module) => {
+            acc[module.id] = module.subTopics.reduce((subAcc, topic) => ({ ...subAcc, [topic]: true }), {});
+            return acc;
+         }, {} as { [moduleId: number]: { [subTopic: string]: boolean } });
+         setSubTopicVisibility(defaultVisibility);
+    }
+
   }, []);
 
-  const modules = useMemo(() => MODULE_DATA, []);
+  // Effect to save modules to local storage whenever they change
+  useEffect(() => {
+    // Avoid saving during initial empty state
+    if (modules.length > 0) {
+        localStorage.setItem('modules', JSON.stringify(modules));
+    }
+  }, [modules]);
+
 
   const handleStartQuiz = useCallback((module: Module, subTopic?: string) => {
     setActiveModule(module);
@@ -114,6 +167,18 @@ const App: React.FC = () => {
     });
   }, []);
 
+  const handleToggleSubTopicVisibility = useCallback((moduleId: number, subTopic: string) => {
+    setSubTopicVisibility(prev => {
+        const newVisibility = JSON.parse(JSON.stringify(prev)); // Deep copy
+        if (!newVisibility[moduleId]) {
+            newVisibility[moduleId] = {};
+        }
+        newVisibility[moduleId][subTopic] = !newVisibility[moduleId][subTopic];
+        localStorage.setItem('subTopicVisibility', JSON.stringify(newVisibility));
+        return newVisibility;
+    });
+  }, []);
+
   const handleSaveQuestions = (moduleId: number, subTopic: string, questions: Question[]) => {
       const newBank = { ...questionBank };
       if (!newBank[moduleId]) {
@@ -122,6 +187,65 @@ const App: React.FC = () => {
       newBank[moduleId][subTopic] = questions;
       updateQuestionBank(newBank);
   };
+
+    const handleAddModule = useCallback((title: string) => {
+        if (!title || title.trim() === '') return;
+
+        setModules(prevModules => {
+            const newModuleId = prevModules.length > 0 ? Math.max(...prevModules.map(m => m.id)) + 1 : 1;
+            const newModule: Module = {
+                id: newModuleId,
+                title: title.trim(),
+                icon: 'folder',
+                color: 'bg-gray-100 text-gray-600',
+                subTopics: [],
+            };
+            
+            setModuleVisibility(prev => {
+                const newVisibility = { ...prev, [newModuleId]: true };
+                localStorage.setItem('moduleVisibility', JSON.stringify(newVisibility));
+                return newVisibility;
+            });
+    
+            setSubTopicVisibility(prev => {
+                const newVisibility = { ...prev, [newModuleId]: {} };
+                localStorage.setItem('subTopicVisibility', JSON.stringify(newVisibility));
+                return newVisibility;
+            });
+
+            return [...prevModules, newModule];
+        });
+    }, []);
+
+    const handleAddSubTopic = useCallback((moduleId: number, subTopic: string) => {
+        if (!subTopic || subTopic.trim() === '') return;
+
+        setModules(prevModules => 
+            prevModules.map(module => {
+                if (module.id === moduleId) {
+                    if (module.subTopics.includes(subTopic.trim())) {
+                        alert("Sub-topic with this name already exists in this module.");
+                        return module;
+                    }
+                    const updatedModule = {
+                        ...module,
+                        subTopics: [...module.subTopics, subTopic.trim()]
+                    };
+
+                    setSubTopicVisibility(prev => {
+                        const newVisibility = JSON.parse(JSON.stringify(prev));
+                        if (!newVisibility[moduleId]) newVisibility[moduleId] = {};
+                        newVisibility[moduleId][subTopic.trim()] = true;
+                        localStorage.setItem('subTopicVisibility', JSON.stringify(newVisibility));
+                        return newVisibility;
+                    });
+                    
+                    return updatedModule;
+                }
+                return module;
+            })
+        );
+    }, []);
 
   const handleExportQuestions = useCallback(() => {
     if (Object.keys(questionBank).length === 0) {
@@ -259,6 +383,10 @@ const App: React.FC = () => {
                   onImportSubTopic={handleImportSubTopic}
                   moduleVisibility={moduleVisibility}
                   onToggleModuleVisibility={handleToggleModuleVisibility}
+                  subTopicVisibility={subTopicVisibility}
+                  onToggleSubTopicVisibility={handleToggleSubTopicVisibility}
+                  onAddModule={handleAddModule}
+                  onAddSubTopic={handleAddSubTopic}
                 />;
     }
   };
