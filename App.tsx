@@ -6,6 +6,7 @@ import LoginView from './components/LoginView';
 import QuestionManager from './components/QuestionManager';
 import Home from './components/Home';
 import Footer from './components/Footer';
+import QuizCustomizationModal from './components/QuizCustomizationModal';
 import { INITIAL_EXAM_DATA } from './constants';
 import type { Module, QuestionBank, Question, Exam, SubTopic } from './types';
 
@@ -17,6 +18,7 @@ const App: React.FC = () => {
   const [activeModule, setActiveModule] = useState<Module | null>(null);
   const [activeSubTopic, setActiveSubTopic] = useState<string | null>(null);
   const [activeContentPoint, setActiveContentPoint] = useState<string | null>(null);
+  const [activeQuizQuestions, setActiveQuizQuestions] = useState<Question[]>([]);
   const [completedModules, setCompletedModules] = useState<Set<number>>(new Set());
   
   // Admin and Question Bank State
@@ -28,6 +30,13 @@ const App: React.FC = () => {
   const [subTopicVisibility, setSubTopicVisibility] = useState<{ [moduleId: number]: { [subTopic: string]: boolean } }>({});
   const [contentPointVisibility, setContentPointVisibility] = useState<{ [moduleId: number]: { [subTopic: string]: { [contentPoint: string]: boolean } } }>({});
   const [exams, setExams] = useState<Exam[]>([]);
+  const [quizSettings, setQuizSettings] = useState<{
+    isOpen: boolean;
+    module: Module | null;
+    subTopic: string | null;
+    contentPoint: string | null;
+    availableQuestions: number;
+  }>({ isOpen: false, module: null, subTopic: null, contentPoint: null, availableQuestions: 0 });
 
   // Load data from local storage on initial render
   useEffect(() => {
@@ -163,12 +172,43 @@ const App: React.FC = () => {
     return contentPoint ? `${subTopic}::${contentPoint}` : subTopic;
   };
 
-  const handleStartQuiz = useCallback((module: Module, subTopic?: string, contentPoint?: string) => {
+  const handleConfigureQuiz = useCallback((module: Module, subTopic?: string, contentPoint?: string) => {
+    if (!subTopic) return;
+    const topicIdentifier = getTopicIdentifier(subTopic, contentPoint);
+    const availableQuestions = questionBank[module.id]?.[topicIdentifier]?.length || 0;
+
+    if (availableQuestions > 0) {
+      setQuizSettings({
+        isOpen: true,
+        module,
+        subTopic,
+        contentPoint: contentPoint || null,
+        availableQuestions,
+      });
+    } else {
+      alert("No questions available for this topic yet.");
+    }
+  }, [questionBank]);
+
+  const handleStartQuiz = useCallback((numberOfQuestions: number) => {
+    if (!quizSettings.module || !quizSettings.subTopic) return;
+    
+    const { module, subTopic, contentPoint } = quizSettings;
+    const topicIdentifier = getTopicIdentifier(subTopic, contentPoint);
+    const allQuestions = questionBank[module.id]?.[topicIdentifier] || [];
+
+    // Shuffle and slice
+    const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
+    const selectedQuestions = shuffled.slice(0, numberOfQuestions);
+
     setActiveModule(module);
-    setActiveSubTopic(subTopic || null);
-    setActiveContentPoint(contentPoint || null);
+    setActiveSubTopic(subTopic);
+    setActiveContentPoint(contentPoint);
+    setActiveQuizQuestions(selectedQuestions);
     setCurrentView('quiz');
-  }, []);
+    setQuizSettings({ isOpen: false, module: null, subTopic: null, contentPoint: null, availableQuestions: 0 });
+  }, [questionBank, quizSettings]);
+
 
   const handleCompleteQuiz = useCallback((moduleId: number) => {
     if (!activeSubTopic && !activeContentPoint) {
@@ -563,7 +603,13 @@ const App: React.FC = () => {
 
     switch (currentView) {
       case 'quiz':
-        return activeModule && <QuizView module={activeModule} subTopic={activeSubTopic} contentPoint={activeContentPoint} questionBank={questionBank} onCompleteQuiz={handleCompleteQuiz} />;
+        return activeModule && <QuizView 
+          module={activeModule} 
+          subTopic={activeSubTopic} 
+          contentPoint={activeContentPoint} 
+          questions={activeQuizQuestions}
+          onCompleteQuiz={handleCompleteQuiz} 
+        />;
       case 'completed':
         return activeModule && <QuizCompletedView moduleTitle={activeContentPoint || activeSubTopic || activeModule.title} onReturnToDashboard={handleReturnToDashboard} />;
       case 'dashboard':
@@ -572,7 +618,7 @@ const App: React.FC = () => {
                   examTitle={activeExam.title}
                   modules={activeExam.modules} 
                   completedModules={completedModules} 
-                  onStartQuiz={handleStartQuiz} 
+                  onConfigureQuiz={handleConfigureQuiz} 
                   onResetProgress={handleResetProgress}
                   isAdmin={isAdmin}
                   onAdminLoginClick={() => setLoginModalOpen(true)}
@@ -621,6 +667,15 @@ const App: React.FC = () => {
       </div>
       <Footer />
       {isLoginModalOpen && <LoginView onLogin={handleAdminLogin} onClose={() => setLoginModalOpen(false)} />}
+      {quizSettings.isOpen && quizSettings.module && (
+        <QuizCustomizationModal
+          isOpen={quizSettings.isOpen}
+          onClose={() => setQuizSettings({ ...quizSettings, isOpen: false })}
+          topicTitle={quizSettings.contentPoint || quizSettings.subTopic || ''}
+          maxQuestions={quizSettings.availableQuestions}
+          onStart={handleStartQuiz}
+        />
+      )}
     </div>
   );
 };

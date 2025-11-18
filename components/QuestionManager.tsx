@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import type { Module, Question } from '../types';
 import QuestionForm from './QuestionForm';
-import { generateQuestionSuggestions } from '../services/geminiService';
 import Icon from './Icon';
 
 interface QuestionManagerProps {
@@ -17,8 +16,6 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({ module, subTopic, con
   const [questions, setQuestions] = useState<Question[]>(initialQuestions);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [suggestions, setSuggestions] = useState<Question[]>([]);
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   const handleAddOrUpdateQuestion = (question: Question) => {
     let updatedQuestions;
@@ -38,24 +35,6 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({ module, subTopic, con
     if (window.confirm("Are you sure you want to delete this question?")) {
         setQuestions(questions.filter(q => q.id !== questionId));
     }
-  };
-
-  const handleGenerateSuggestions = async () => {
-    setIsLoadingSuggestions(true);
-    setSuggestions([]);
-    try {
-        const generated = await generateQuestionSuggestions(module.title, contentPoint || subTopic);
-        setSuggestions(generated.map(q => ({...q, id: new Date().toISOString() + Math.random() })));
-    } catch (error) {
-        alert("Failed to generate suggestions. Please check the console.");
-        console.error(error);
-    }
-    setIsLoadingSuggestions(false);
-  };
-
-  const handleAddSuggestion = (suggestion: Question) => {
-    setQuestions([...questions, suggestion]);
-    setSuggestions(suggestions.filter(s => s.id !== suggestion.id));
   };
   
   const handleSaveChanges = () => {
@@ -99,20 +78,6 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({ module, subTopic, con
       <main className="flex-1 p-6 space-y-4 overflow-y-auto">
         {renderContent()}
       </main>
-      <aside className="p-6 border-t bg-slate-50">
-        <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2"><Icon iconName="sparkles" className="h-5 w-5 text-indigo-500" /> AI Suggestions</h3>
-        <button onClick={handleGenerateSuggestions} disabled={isLoadingSuggestions} className="w-full py-2 bg-indigo-100 text-indigo-700 font-semibold rounded-lg hover:bg-indigo-200 disabled:opacity-50">
-            {isLoadingSuggestions ? 'Generating...' : 'Generate 3 Suggestions with Gemini'}
-        </button>
-        {suggestions.length > 0 && <div className="mt-4 space-y-2">
-            {suggestions.map(sugg => (
-                <div key={sugg.id} className="p-3 bg-indigo-50 rounded-lg flex justify-between items-center">
-                    <p className="text-sm text-gray-700 flex-1">{sugg.question}</p>
-                    <button onClick={() => handleAddSuggestion(sugg)} className="px-3 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded-full hover:bg-green-200">Add</button>
-                </div>
-            ))}
-        </div>}
-      </aside>
       <footer className="p-6 border-t border-gray-200 flex justify-end gap-4">
         <button onClick={onClose} className="px-6 py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200">Close</button>
         <button onClick={handleSaveChanges} className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700">Save & Close</button>

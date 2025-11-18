@@ -6,7 +6,7 @@ interface ModuleListItemProps {
   module: Module;
   status: ModuleStatus;
   questionBank: QuestionBank;
-  onStart: (subTopic?: string, contentPoint?: string) => void;
+  onConfigure: (subTopic?: string, contentPoint?: string) => void;
   isAdmin: boolean;
   onManage: (subTopic: string, contentPoint?: string) => void;
   onEdit: (newTitle: string) => void;
@@ -22,16 +22,19 @@ interface ModuleListItemProps {
   onEditSubTopic: (oldSubTopic: string, newSubTopic: string) => void;
 }
 
-const ContentPointItem: React.FC<{
+interface ContentPointItemProps {
   item: string;
   isAdmin: boolean;
-  onStartQuiz: () => void;
+  questionCount: number;
+  onConfigureQuiz: () => void;
   isVisible: boolean;
   onToggleVisibility: () => void;
   onManage: () => void;
   onExport: () => void;
   onImport: (event: React.ChangeEvent<HTMLInputElement>) => void;
-}> = ({ item, isAdmin, onStartQuiz, isVisible, onToggleVisibility, onManage, onExport, onImport }) => {
+}
+
+const ContentPointItem: React.FC<ContentPointItemProps> = ({ item, isAdmin, questionCount, onConfigureQuiz, isVisible, onToggleVisibility, onManage, onExport, onImport }) => {
     const importInputRef = useRef<HTMLInputElement>(null);
     const handleImportClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -40,7 +43,14 @@ const ContentPointItem: React.FC<{
 
   return (
     <li className={`text-sm text-gray-500 py-1 list-disc list-inside flex justify-between items-center group ${isAdmin && !isVisible ? 'opacity-40' : ''}`}>
-      <span>{item}</span>
+      <div className="flex items-center gap-2">
+        <span>{item}</span>
+        {!isAdmin && questionCount > 0 && (
+            <span className="text-xs font-semibold text-sky-700 bg-sky-100 px-2 py-0.5 rounded-full">
+                {questionCount} Qs
+            </span>
+        )}
+      </div>
       <div className="flex items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
         {isAdmin ? (
             <>
@@ -71,11 +81,12 @@ const ContentPointItem: React.FC<{
             </>
         ) : (
           <button
-            onClick={(e) => { e.stopPropagation(); onStartQuiz(); }}
-            className="px-2 py-0.5 text-xs font-semibold text-indigo-700 bg-indigo-100 rounded-full hover:bg-indigo-200"
+            onClick={(e) => { e.stopPropagation(); onConfigureQuiz(); }}
+            disabled={questionCount === 0}
+            className="px-2 py-0.5 text-xs font-semibold text-indigo-700 bg-indigo-100 rounded-full hover:bg-indigo-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
             aria-label={`Start quiz for ${item}`}
           >
-            Quiz
+            {questionCount > 0 ? 'Quiz' : 'No Qs'}
           </button>
         )}
       </div>
@@ -83,11 +94,13 @@ const ContentPointItem: React.FC<{
   );
 };
 
-const SubTopicItem: React.FC<{
+interface SubTopicItemProps {
   topic: SubTopic;
   isAdmin: boolean;
-  onStartSubTopicQuiz: () => void;
-  onStartContentPointQuiz: (contentPoint: string) => void;
+  questionCount: number;
+  contentPointQuestionCounts: { [contentPoint: string]: number };
+  onConfigureSubTopicQuiz: () => void;
+  onConfigureContentPointQuiz: (contentPoint: string) => void;
   onManage: (subTopic: string, contentPoint?: string) => void;
   onEdit: (newTitle: string) => void;
   onExport: (subTopic: string, contentPoint?: string) => void;
@@ -96,8 +109,10 @@ const SubTopicItem: React.FC<{
   onToggleVisibility: () => void;
   contentPointVisibility: { [contentPoint: string]: boolean };
   onToggleContentPointVisibility: (contentPoint: string) => void;
-}> = ({ 
-    topic, isAdmin, onStartSubTopicQuiz, onStartContentPointQuiz, onManage, 
+}
+
+const SubTopicItem: React.FC<SubTopicItemProps> = ({ 
+    topic, isAdmin, questionCount, contentPointQuestionCounts, onConfigureSubTopicQuiz, onConfigureContentPointQuiz, onManage, 
     onEdit, onExport, onImport, isVisible, onToggleVisibility, 
     contentPointVisibility, onToggleContentPointVisibility 
 }) => {
@@ -130,6 +145,9 @@ const SubTopicItem: React.FC<{
                     </button>
                 )}
               </div>
+              {!isAdmin && questionCount > 0 && (
+                <p className="text-xs text-gray-500 mt-1">{questionCount} question{questionCount !== 1 ? 's' : ''} available</p>
+              )}
               {topic.content.length > 0 && (
                 <ul className="pl-0 pr-4 mt-1 space-y-1">
                     {topic.content.map((item, index) => {
@@ -140,7 +158,8 @@ const SubTopicItem: React.FC<{
                               key={index}
                               item={item}
                               isAdmin={isAdmin}
-                              onStartQuiz={() => onStartContentPointQuiz(item)}
+                              questionCount={contentPointQuestionCounts[item] || 0}
+                              onConfigureQuiz={() => onConfigureContentPointQuiz(item)}
                               isVisible={isContentPointVisible}
                               onToggleVisibility={() => onToggleContentPointVisibility(item)}
                               onManage={() => onManage(topic.title, item)}
@@ -190,8 +209,9 @@ const SubTopicItem: React.FC<{
           ) : (
             topic.content.length === 0 && (
               <button
-                onClick={(e) => { e.stopPropagation(); onStartSubTopicQuiz(); }}
-                className="px-3 py-1 text-xs font-semibold text-indigo-700 bg-indigo-100 rounded-full hover:bg-indigo-200 transition-colors"
+                onClick={(e) => { e.stopPropagation(); onConfigureSubTopicQuiz(); }}
+                disabled={questionCount === 0}
+                className="px-3 py-1 text-xs font-semibold text-indigo-700 bg-indigo-100 rounded-full hover:bg-indigo-200 transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                 aria-label={`Start quiz for ${topic.title}`}
               >
                 Start Quiz
@@ -206,7 +226,7 @@ const SubTopicItem: React.FC<{
 
 
 const ModuleListItem: React.FC<ModuleListItemProps> = ({ 
-    module, status, questionBank, onStart, isAdmin, onManage, onEdit, onExport, onImport, isVisible, 
+    module, status, questionBank, onConfigure, isAdmin, onManage, onEdit, onExport, onImport, isVisible, 
     onToggleVisibility, subTopicVisibility, onToggleSubTopicVisibility, 
     contentPointVisibility, onToggleContentPointVisibility,
     onAddSubTopic, onEditSubTopic
@@ -218,8 +238,14 @@ const ModuleListItem: React.FC<ModuleListItemProps> = ({
     if (!moduleQuestions) {
       return 0;
     }
-    // FIX: The type of `questionsArray` was being inferred as `unknown`, causing the error `Operator '+' cannot be applied to types 'unknown' and 'number'`. Casting `questionsArray` to `Question[]` ensures `length` can be accessed safely and resolves the type conflict.
-    return Object.values(moduleQuestions).reduce((sum, questionsArray) => sum + ((questionsArray as Question[])?.length || 0), 0);
+    // FIX: Use a type guard to ensure questionsArray is an array before accessing its length property.
+    // FIX: Explicitly type the accumulator ('sum') to prevent TypeScript from inferring it as 'unknown' in complex scenarios.
+    return Object.values(moduleQuestions).reduce((sum: number, questionsArray) => {
+        if (Array.isArray(questionsArray)) {
+            return sum + questionsArray.length;
+        }
+        return sum;
+    }, 0);
   }, [questionBank, module.id]);
 
   const handleAddSubTopicClick = () => {
@@ -306,21 +332,6 @@ const ModuleListItem: React.FC<ModuleListItemProps> = ({
         </div>
         <div className="flex items-center gap-4">
           {getStatusBadge()}
-          {!isAdmin && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onStart();
-              }}
-              className={`px-6 py-2 rounded-lg font-semibold text-sm transition-colors duration-300 ${
-                status === 'completed' 
-                  ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
-              }`}
-            >
-              {status === 'completed' ? 'Review' : 'Start'}
-            </button>
-          )}
           <Icon iconName="chevron-down" className={`h-5 w-5 text-gray-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
         </div>
       </div>
@@ -329,25 +340,39 @@ const ModuleListItem: React.FC<ModuleListItemProps> = ({
         <div id={`module-content-${module.id}`} className="px-4 pb-4 pt-0 border-t border-gray-100">
           <h4 className="text-sm font-semibold text-gray-700 my-3 px-2">Sub-Topics Covered:</h4>
            {visibleSubTopics.length > 0 ? (
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                {visibleSubTopics.map((topic, index) => (
-                    <SubTopicItem
-                      key={index}
-                      topic={topic}
-                      isAdmin={isAdmin}
-                      onStartSubTopicQuiz={() => onStart(topic.title)}
-                      onStartContentPointQuiz={(contentPoint) => onStart(topic.title, contentPoint)}
-                      onManage={onManage}
-                      onEdit={(newTopicTitle) => onEditSubTopic(topic.title, newTopicTitle)}
-                      onExport={onExport}
-                      onImport={onImport}
-                      isVisible={subTopicVisibility[topic.title] ?? true}
-                      onToggleVisibility={() => onToggleSubTopicVisibility(topic.title)}
-                      contentPointVisibility={contentPointVisibility[topic.title] || {}}
-                      onToggleContentPointVisibility={(contentPoint) => onToggleContentPointVisibility(topic.title, contentPoint)}
-                    />
-                  )
-                )}
+            <ul className="space-y-1">
+                {visibleSubTopics.map((topic, index) => {
+                    const moduleQuestions = questionBank[module.id] || {};
+
+                    const contentPointQuestionCounts: { [key: string]: number } = {};
+                    topic.content.forEach(cp => {
+                        const contentPointIdentifier = `${topic.title}::${cp}`;
+                        contentPointQuestionCounts[cp] = moduleQuestions[contentPointIdentifier]?.length || 0;
+                    });
+
+                    const subTopicOnlyQuestionCount = moduleQuestions[topic.title]?.length || 0;
+                    const totalSubTopicQuestionCount = subTopicOnlyQuestionCount + Object.values(contentPointQuestionCounts).reduce((a, b) => a + b, 0);
+                    
+                    return (
+                        <SubTopicItem
+                          key={index}
+                          topic={topic}
+                          isAdmin={isAdmin}
+                          questionCount={totalSubTopicQuestionCount}
+                          contentPointQuestionCounts={contentPointQuestionCounts}
+                          onConfigureSubTopicQuiz={() => onConfigure(topic.title)}
+                          onConfigureContentPointQuiz={(contentPoint) => onConfigure(topic.title, contentPoint)}
+                          onManage={onManage}
+                          onEdit={(newTopicTitle) => onEditSubTopic(topic.title, newTopicTitle)}
+                          onExport={onExport}
+                          onImport={onImport}
+                          isVisible={subTopicVisibility[topic.title] ?? true}
+                          onToggleVisibility={() => onToggleSubTopicVisibility(topic.title)}
+                          contentPointVisibility={contentPointVisibility[topic.title] || {}}
+                          onToggleContentPointVisibility={(contentPoint) => onToggleContentPointVisibility(topic.title, contentPoint)}
+                        />
+                    );
+                })}
             </ul>
            ) : (
             <p className="text-sm text-gray-500 text-center py-4">No sub-topics defined or all are currently hidden.</p>

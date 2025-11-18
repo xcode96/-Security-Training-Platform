@@ -1,31 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import type { Module, Question, QuestionBank } from '../types';
-import { generateQuestionsForModule, generateExplanationForAnswer, generateExplanationForQuestion, generateTagsForQuestion } from '../services/geminiService';
+import React, { useState } from 'react';
+import type { Module, Question } from '../types';
 import Icon from './Icon';
 
 interface QuizViewProps {
   module: Module;
   subTopic?: string | null;
   contentPoint?: string | null;
-  questionBank: QuestionBank;
+  questions: Question[];
   onCompleteQuiz: (moduleId: number) => void;
 }
-
-const CategoryTag: React.FC<{ children: React.ReactNode, color: string }> = ({ children, color }) => (
-    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${color}`}>
-        {children}
-    </span>
-);
-
-const tagColors = [
-    "bg-blue-100 text-blue-800",
-    "bg-green-100 text-green-800",
-    "bg-yellow-100 text-yellow-800",
-    "bg-purple-100 text-purple-800",
-    "bg-pink-100 text-pink-800",
-    "bg-red-100 text-red-800",
-    "bg-indigo-100 text-indigo-800",
-];
 
 const MarkdownRenderer: React.FC<{ text: string | null }> = ({ text }) => {
   if (!text) {
@@ -68,10 +51,9 @@ const MarkdownRenderer: React.FC<{ text: string | null }> = ({ text }) => {
     );
   }).filter(Boolean);
 
-  // FIX: Replace `JSX.Element` with `React.ReactElement` to resolve "Cannot find namespace 'JSX'" error.
-  const groupedElements: React.ReactElement[] = [];
-  // FIX: Replace `JSX.Element` with `React.ReactElement` to resolve "Cannot find namespace 'JSX'" error.
-  let currentList: React.ReactElement[] = [];
+  // FIX: Replaced JSX.Element with React.JSX.Element to resolve namespace error.
+  const groupedElements: React.JSX.Element[] = [];
+  let currentList: React.JSX.Element[] = [];
 
   elements.forEach((el, i) => {
     if (el.type === 'li') {
@@ -81,8 +63,8 @@ const MarkdownRenderer: React.FC<{ text: string | null }> = ({ text }) => {
         groupedElements.push(<ul key={`ul-${i}`} className="space-y-1 mt-2">{currentList}</ul>);
         currentList = [];
       }
-      // FIX: Replace `JSX.Element` with `React.ReactElement` to resolve "Cannot find namespace 'JSX'" error.
-      groupedElements.push(el as React.ReactElement);
+      // FIX: Replaced JSX.Element with React.JSX.Element to resolve namespace error.
+      groupedElements.push(el as React.JSX.Element);
     }
   });
 
@@ -93,55 +75,11 @@ const MarkdownRenderer: React.FC<{ text: string | null }> = ({ text }) => {
   return <div className="text-gray-600 text-sm space-y-2">{groupedElements}</div>;
 };
 
-const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, questionBank, onCompleteQuiz }) => {
-  const [questions, setQuestions] = useState<Question[]>([]);
+const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, questions, onCompleteQuiz }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [answerChecked, setAnswerChecked] = useState<boolean>(false);
   const [explanation, setExplanation] = useState<string | null>(null);
-  const [isExplanationLoading, setIsExplanationLoading] = useState<boolean>(false);
-  const [questionExplanation, setQuestionExplanation] = useState<string | null>(null);
-  const [isQuestionExplanationLoading, setIsQuestionExplanationLoading] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [tags, setTags] = useState<string[]>([]);
-  const [isTagsLoading, setIsTagsLoading] = useState(false);
-
-  const fetchQuestions = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      // For module-level quizzes, always generate
-      if (!subTopic) {
-        const generatedQuestions = await generateQuestionsForModule(module.title, module.subTopics);
-        setQuestions(generatedQuestions.map(q => ({ ...q, id: new Date().toISOString() + Math.random() })));
-        setIsLoading(false);
-        return;
-      }
-      
-      // For sub-topic or content-point quizzes, check bank first
-      const topicIdentifier = contentPoint ? `${subTopic}::${contentPoint}` : subTopic;
-      const bankQuestions = questionBank[module.id]?.[topicIdentifier];
-
-      if (bankQuestions && bankQuestions.length > 0) {
-        setQuestions(bankQuestions);
-      } else {
-        const generatedQuestions = await generateQuestionsForModule(module.title, module.subTopics, subTopic, contentPoint);
-        if (generatedQuestions.length === 0) {
-          throw new Error("No questions were generated. Please try again.");
-        }
-        setQuestions(generatedQuestions.map(q => ({ ...q, id: new Date().toISOString() + Math.random() })));
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [module.id, module.title, module.subTopics, subTopic, contentPoint, questionBank]);
-
-  useEffect(() => {
-    fetchQuestions();
-  }, [fetchQuestions]);
   
   const quizTitle = contentPoint 
     ? `${subTopic}: ${contentPoint}` 
@@ -149,27 +87,8 @@ const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, que
     ? `${module.title}: ${subTopic}` 
     : module.title;
 
-  useEffect(() => {
-    if (questions.length > 0 && currentQuestionIndex < questions.length) {
-        const currentQuestion = questions[currentQuestionIndex];
-        const fetchTags = async () => {
-            setIsTagsLoading(true);
-            setTags([]);
-            try {
-                const generatedTags = await generateTagsForQuestion(currentQuestion.question, quizTitle);
-                setTags(generatedTags);
-            } catch (e) {
-                console.error("Failed to fetch tags", e);
-                setTags([]); // set empty on error
-            } finally {
-                setIsTagsLoading(false);
-            }
-        };
-        fetchTags();
-    }
-  }, [currentQuestionIndex, questions, quizTitle]);
 
-  const handleCheckAnswer = async () => {
+  const handleCheckAnswer = () => {
     if (!selectedAnswer) return;
 
     setAnswerChecked(true);
@@ -178,35 +97,6 @@ const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, que
     // Use manual explanation if available
     if (currentQuestion.explanation && currentQuestion.explanation.trim() !== '') {
       setExplanation(currentQuestion.explanation);
-      return; // Done. No loading, no API call.
-    }
-    
-    // Otherwise, fetch from API
-    setIsExplanationLoading(true);
-    setExplanation(null);
-    try {
-        const { question, correctAnswer } = currentQuestion;
-        const generatedExplanation = await generateExplanationForAnswer(question, correctAnswer, selectedAnswer);
-        setExplanation(generatedExplanation);
-    } catch (err) {
-        setExplanation("Sorry, we couldn't generate an explanation at this time.");
-    } finally {
-        setIsExplanationLoading(false);
-    }
-  };
-  
-  const handleExplainQuestion = async () => {
-    setIsQuestionExplanationLoading(true);
-    setQuestionExplanation(null);
-
-    try {
-        const { question, options } = questions[currentQuestionIndex];
-        const generatedExplanation = await generateExplanationForQuestion(question, options);
-        setQuestionExplanation(generatedExplanation);
-    } catch (err) {
-        setQuestionExplanation("Sorry, we couldn't generate an explanation for this question at this time.");
-    } finally {
-        setIsQuestionExplanationLoading(false);
     }
   };
 
@@ -216,30 +106,20 @@ const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, que
       setSelectedAnswer(null);
       setAnswerChecked(false);
       setExplanation(null);
-      setQuestionExplanation(null);
     } else {
       onCompleteQuiz(module.id);
     }
   };
-
-  if (isLoading) {
-    return <div className="text-center p-10 bg-white rounded-xl shadow-lg">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-      <p className="text-gray-600">Preparing your quiz...</p>
-    </div>;
-  }
-
-  if (error) {
-    return <div className="text-center p-10 bg-white rounded-xl shadow-lg">
-      <p className="text-red-500 font-semibold mb-4">Error: {error}</p>
-      <button onClick={fetchQuestions} className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-        Retry
-      </button>
-    </div>;
-  }
   
-  if(questions.length === 0) {
-    return <div className="text-center p-10 bg-white rounded-xl shadow-lg"><p className="text-gray-600">No questions available for this topic.</p></div>;
+  if(!questions || questions.length === 0) {
+    return (
+        <div className="text-center p-10 bg-white rounded-xl shadow-lg">
+            <p className="text-gray-600 mb-4">No questions available for this topic. An admin may need to add them.</p>
+            <button onClick={() => onCompleteQuiz(module.id)} className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                Return to Dashboard
+            </button>
+        </div>
+    );
   }
 
   const currentQuestion = questions[currentQuestionIndex];
@@ -273,32 +153,8 @@ const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, que
         <p className="text-sm text-gray-500">Question {currentQuestionIndex + 1} of {questions.length}</p>
       </div>
 
-      <div className="mb-4 flex flex-wrap justify-center gap-2 min-h-[30px]">
-        {isTagsLoading ? (
-            <span className="text-sm text-gray-400 animate-pulse">Generating tags...</span>
-        ) : (
-            tags.map((tag, index) => (
-                <CategoryTag key={index} color={tagColors[index % tagColors.length]}>{tag}</CategoryTag>
-            ))
-        )}
-      </div>
-
       <h3 className="text-xl font-bold text-gray-800 my-8 text-center">{currentQuestion.question}</h3>
       
-      { (isQuestionExplanationLoading || questionExplanation) && (
-         <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-           <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
-             <Icon iconName="sparkles" className="h-5 w-5 text-indigo-500" />
-             Hint
-           </h4>
-           {isQuestionExplanationLoading ? (
-             <p className="text-gray-600 animate-pulse">Gemini is thinking...</p>
-           ) : (
-             <MarkdownRenderer text={questionExplanation} />
-           )}
-         </div>
-      )}
-
       <div className="space-y-4">
         {currentQuestion.options.map((option, index) => (
           <button
@@ -312,33 +168,22 @@ const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, que
         ))}
       </div>
       
-      {answerChecked && (
+      {answerChecked && explanation && (
          <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
            <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
-             <Icon iconName={currentQuestion.explanation ? 'book-open' : 'sparkles'} className={`h-5 w-5 ${currentQuestion.explanation ? 'text-green-500' : 'text-indigo-500'}`} />
+             <Icon iconName={'book-open'} className={`h-5 w-5 text-green-500`} />
              Explanation
            </h4>
-           {isExplanationLoading ? (
-             <p className="text-gray-600 animate-pulse">Gemini is thinking...</p>
-           ) : (
-             <MarkdownRenderer text={explanation} />
-           )}
+            <MarkdownRenderer text={explanation} />
          </div>
       )}
 
       {!answerChecked ? (
         <div className="flex flex-col sm:flex-row items-center gap-4 mt-8">
           <button
-            onClick={handleExplainQuestion}
-            disabled={isQuestionExplanationLoading || !!questionExplanation}
-            className="w-full sm:w-1/2 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 disabled:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isQuestionExplanationLoading ? 'Thinking...' : 'Explain Question'}
-          </button>
-          <button
             onClick={handleCheckAnswer}
             disabled={!selectedAnswer}
-            className="w-full sm:w-1/2 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           >
             Check Answer
           </button>

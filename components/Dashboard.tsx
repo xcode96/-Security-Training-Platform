@@ -8,7 +8,7 @@ interface DashboardProps {
   examTitle: string;
   modules: Module[];
   completedModules: Set<number>;
-  onStartQuiz: (module: Module, subTopic?: string, contentPoint?: string) => void;
+  onConfigureQuiz: (module: Module, subTopic?: string, contentPoint?: string) => void;
   onResetProgress: () => void;
   isAdmin: boolean;
   onAdminLoginClick: () => void;
@@ -33,7 +33,7 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
-  examTitle, modules, completedModules, onStartQuiz, onResetProgress, 
+  examTitle, modules, completedModules, onConfigureQuiz, onResetProgress, 
   isAdmin, onAdminLoginClick, onLogout, onManageQuestions, 
   onExportQuestions, onImportQuestions, onExportTopic, onImportTopic,
   moduleVisibility, onToggleModuleVisibility,
@@ -134,7 +134,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               module={module}
               questionBank={questionBank}
               status={completedModules.has(module.id) ? 'completed' : 'not-started'} 
-              onStart={(subTopic, contentPoint) => onStartQuiz(module, subTopic, contentPoint)}
+              onConfigure={(subTopic, contentPoint) => onConfigureQuiz(module, subTopic, contentPoint)}
               isAdmin={isAdmin}
               onManage={(subTopic, contentPoint) => onManageQuestions(module, subTopic, contentPoint)}
               onEdit={(newTitle) => onEditModule(module.id, newTitle)}

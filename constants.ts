@@ -6,140 +6,357 @@ const CEH_MODULES: Module[] = [
         title: "Introduction to Ethical Hacking",
         icon: 'shield',
         color: "bg-gray-100 text-gray-600",
-        subTopics: ["Information security overview", "Cyber kill chain", "MITRE ATT&CK framework", "Hacker types", "Attack vectors", "Penetration testing concepts", "Vulnerability, threat, and risk", "Security policies", "Incident management", "OWASP", "CIA triad", "Defense-in-depth"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "Information security overview", content: [] },
+            { title: "Cyber kill chain", content: [] },
+            { title: "MITRE ATT&CK framework", content: [] },
+            { title: "Hacker types", content: [] },
+            { title: "Attack vectors", content: [] },
+            { title: "Penetration testing concepts", content: [] },
+            { title: "Vulnerability, threat, and risk", content: [] },
+            { title: "Security policies", content: [] },
+            { title: "Incident management", content: [] },
+            { title: "OWASP", content: [] },
+            { title: "CIA triad", content: [] },
+            { title: "Defense-in-depth", content: [] }
+        ]
     },
     {
         id: 2,
         title: "Footprinting & Reconnaissance",
         icon: 'footprint',
         color: "bg-slate-100 text-slate-600",
-        subTopics: ["Passive footprinting", "Active footprinting", "WHOIS lookup", "DNS enumeration", "Email harvesting", "Website footprinting", "Social networks reconnaissance", "Google dorking", "Shodan OSINT", "People search", "Metadata extraction", "Footprinting through job sites", "Network footprinting", "Vulnerability footprinting"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "Passive footprinting", content: [] },
+            { title: "Active footprinting", content: [] },
+            { title: "WHOIS lookup", content: [] },
+            { title: "DNS enumeration", content: [] },
+            { title: "Email harvesting", content: [] },
+            { title: "Website footprinting", content: [] },
+            { title: "Social networks reconnaissance", content: [] },
+            { title: "Google dorking", content: [] },
+            { title: "Shodan OSINT", content: [] },
+            { title: "People search", content: [] },
+            { title: "Metadata extraction", content: [] },
+            { title: "Footprinting through job sites", content: [] },
+            { title: "Network footprinting", content: [] },
+            { title: "Vulnerability footprinting", content: [] }
+        ]
     },
     {
         id: 3,
         title: "Scanning Networks",
         icon: 'scan',
         color: "bg-red-100 text-red-600",
-        subTopics: ["Host discovery", "Port scanning", "Service/version detection", "Nmap advanced scanning", "TCP/UDP scanning", "Idle scan", "Vulnerability scanning", "Banner grabbing", "Firewalking", "Proxy scanning", "Network mapping", "OS detection"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "Host discovery", content: [] },
+            { title: "Port scanning", content: [] },
+            { title: "Service/version detection", content: [] },
+            { title: "Nmap advanced scanning", content: [] },
+            { title: "TCP/UDP scanning", content: [] },
+            { title: "Idle scan", content: [] },
+            { title: "Vulnerability scanning", content: [] },
+            { title: "Banner grabbing", content: [] },
+            { title: "Firewalking", content: [] },
+            { title: "Proxy scanning", content: [] },
+            { title: "Network mapping", content: [] },
+            { title: "OS detection", content: [] }
+        ]
     },
     {
         id: 4,
         title: "Enumeration",
         icon: 'users',
         color: "bg-orange-100 text-orange-600",
-        subTopics: ["NetBIOS enumeration", "SNMP enumeration", "LDAP enumeration", "NFS, RPC enumeration", "DNS zone transfers", "SMB enumeration", "SMTP user enumeration", "FTP enumeration", "Active Directory enumeration", "Vulnerability identification using enumeration"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "NetBIOS enumeration", content: [] },
+            { title: "SNMP enumeration", content: [] },
+            { title: "LDAP enumeration", content: [] },
+            { title: "NFS, RPC enumeration", content: [] },
+            { title: "DNS zone transfers", content: [] },
+            { title: "SMB enumeration", content: [] },
+            { title: "SMTP user enumeration", content: [] },
+            { title: "FTP enumeration", content: [] },
+            { title: "Active Directory enumeration", content: [] },
+            { title: "Vulnerability identification using enumeration", content: [] }
+        ]
     },
     {
         id: 5,
         title: "Vulnerability Analysis",
         icon: 'bug',
         color: "bg-amber-100 text-amber-600",
-        subTopics: ["Vulnerability lifecycle", "Vulnerability scoring (CVSS)", "SIEM & scanning tools", "Automating scans", "Network vulnerability scanning", "Application vulnerability scanning", "Database vulnerability scanning", "Host-based vulnerability assessment", "Patch management"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "Vulnerability lifecycle", content: [] },
+            { title: "Vulnerability scoring (CVSS)", content: [] },
+            { title: "SIEM & scanning tools", content: [] },
+            { title: "Automating scans", content: [] },
+            { title: "Network vulnerability scanning", content: [] },
+            { title: "Application vulnerability scanning", content: [] },
+            { title: "Database vulnerability scanning", content: [] },
+            { title: "Host-based vulnerability assessment", content: [] },
+            { title: "Patch management", content: [] }
+        ]
     },
     {
         id: 6,
         title: "System Hacking",
         icon: 'laptop',
         color: "bg-yellow-100 text-yellow-600",
-        subTopics: ["Password cracking", "Privilege escalation (Windows & Linux)", "Malware service manipulation", "UAC bypass", "Executing applications remotely", "Hiding files & folders", "Clearing logs", "Covering tracks", "Persistence techniques", "Credential dumping (LSA, SAM)", "Mimikatz"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "Password cracking", content: [] },
+            { title: "Privilege escalation (Windows & Linux)", content: [] },
+            { title: "Malware service manipulation", content: [] },
+            { title: "UAC bypass", content: [] },
+            { title: "Executing applications remotely", content: [] },
+            { title: "Hiding files & folders", content: [] },
+            { title: "Clearing logs", content: [] },
+            { title: "Covering tracks", content: [] },
+            { title: "Persistence techniques", content: [] },
+            { title: "Credential dumping (LSA, SAM)", content: [] },
+            { title: "Mimikatz", content: [] }
+        ]
     },
     {
         id: 7,
         title: "Malware Threats",
         icon: 'alert',
         color: "bg-lime-100 text-lime-600",
-        subTopics: ["Trojan analysis", "Backdoor analysis", "Virus types", "Worms", "Botnet architecture", "Keyloggers", "Ransomware basics", "Malware lifecycle", "AMSI bypass basics", "Malware obfuscation", "Malware detection tools"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "Trojan analysis", content: [] },
+            { title: "Backdoor analysis", content: [] },
+            { title: "Virus types", content: [] },
+            { title: "Worms", content: [] },
+            { title: "Botnet architecture", content: [] },
+            { title: "Keyloggers", content: [] },
+            { title: "Ransomware basics", content: [] },
+            { title: "Malware lifecycle", content: [] },
+            { title: "AMSI bypass basics", content: [] },
+            { title: "Malware obfuscation", content: [] },
+            { title: "Malware detection tools", content: [] }
+        ]
     },
     {
         id: 8,
         title: "Sniffing",
         icon: 'wifi',
         color: "bg-green-100 text-green-600",
-        subTopics: ["Packet sniffing basics", "Wireshark analysis", "MAC flooding", "DHCP starvation", "ARP poisoning", "MITM attacks", "DNS spoofing", "SSL strip", "Sniffing in switched networks", "Sniffing countermeasures"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "Packet sniffing basics", content: [] },
+            { title: "Wireshark analysis", content: [] },
+            { title: "MAC flooding", content: [] },
+            { title: "DHCP starvation", content: [] },
+            { title: "ARP poisoning", content: [] },
+            { title: "MITM attacks", content: [] },
+            { title: "DNS spoofing", content: [] },
+            { title: "SSL strip", content: [] },
+            { title: "Sniffing in switched networks", content: [] },
+            { title: "Sniffing countermeasures", content: [] }
+        ]
     },
     {
         id: 9,
         title: "Social Engineering",
         icon: 'users',
         color: "bg-emerald-100 text-emerald-600",
-        subTopics: ["Human-based attacks", "Phishing, smishing, vishing", "Impersonation attacks", "Baiting & quid pro quo", "Social engineering frameworks", "Honeypots for social engineering prevention", "Insider attacks", "Awareness training"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "Human-based attacks", content: [] },
+            { title: "Phishing, smishing, vishing", content: [] },
+            { title: "Impersonation attacks", content: [] },
+            { title: "Baiting & quid pro quo", content: [] },
+            { title: "Social engineering frameworks", content: [] },
+            { title: "Honeypots for social engineering prevention", content: [] },
+            { title: "Insider attacks", content: [] },
+            { title: "Awareness training", content: [] }
+        ]
     },
     {
         id: 10,
         title: "Denial of Service",
         icon: 'ban',
         color: "bg-teal-100 text-teal-600",
-        subTopics: ["DoS techniques", "DDoS botnets", "Application layer DDoS", "SYN flood attacks", "UDP flood attacks", "HTTP flood", "Slowloris attack", "Botnets architecture", "DoS detection", "Mitigation (CDNs, WAFs)"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "DoS techniques", content: [] },
+            { title: "DDoS botnets", content: [] },
+            { title: "Application layer DDoS", content: [] },
+            { title: "SYN flood attacks", content: [] },
+            { title: "UDP flood attacks", content: [] },
+            { title: "HTTP flood", content: [] },
+            { title: "Slowloris attack", content: [] },
+            { title: "Botnets architecture", content: [] },
+            { title: "DoS detection", content: [] },
+            { title: "Mitigation (CDNs, WAFs)", content: [] }
+        ]
     },
     {
         id: 11,
         title: "Session Hijacking",
         icon: 'key',
         color: "bg-cyan-100 text-cyan-600",
-        subTopics: ["Session hijacking basics", "Session prediction", "TCP hijacking", "UDP hijacking", "Application-level hijacking", "Cookie stealing", "Cross-site request forgery token bypass", "Session sniffing", "Countermeasures"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "Session hijacking basics", content: [] },
+            { title: "Session prediction", content: [] },
+            { title: "TCP hijacking", content: [] },
+            { title: "UDP hijacking", content: [] },
+            { title: "Application-level hijacking", content: [] },
+            { title: "Cookie stealing", content: [] },
+            { title: "Cross-site request forgery token bypass", content: [] },
+            { title: "Session sniffing", content: [] },
+            { title: "Countermeasures", content: [] }
+        ]
     },
     {
         id: 12,
         title: "Evading IDS, Firewalls & Honeypots",
         icon: 'shield-check',
         color: "bg-sky-100 text-sky-600",
-        subTopics: ["IDS detection techniques", "Firewall rules bypassing", "Honeypot detection & evasion", "Traffic fragmentation", "Stealth scanning", "Packet crafting tools", "Polymorphic shellcode", "Tunneling techniques (DNS, ICMP, HTTP)", "Proxy evasion"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "IDS detection techniques", content: [] },
+            { title: "Firewall rules bypassing", content: [] },
+            { title: "Honeypot detection & evasion", content: [] },
+            { title: "Traffic fragmentation", content: [] },
+            { title: "Stealth scanning", content: [] },
+            { title: "Packet crafting tools", content: [] },
+            { title: "Polymorphic shellcode", content: [] },
+            { title: "Tunneling techniques (DNS, ICMP, HTTP)", content: [] },
+            { title: "Proxy evasion", content: [] }
+        ]
     },
     {
         id: 13,
         title: "Hacking Web Servers",
         icon: 'server',
         color: "bg-blue-100 text-blue-600",
-        subTopics: ["Web server fingerprinting", "IIS & Apache vulnerabilities", "Misconfiguration attacks", "Directory traversal", "Web server malware", "SSH brute-force", "Uploading shells", "Web server hardening"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "Web server fingerprinting", content: [] },
+            { title: "IIS & Apache vulnerabilities", content: [] },
+            { title: "Misconfiguration attacks", content: [] },
+            { title: "Directory traversal", content: [] },
+            { title: "Web server malware", content: [] },
+            { title: "SSH brute-force", content: [] },
+            { title: "Uploading shells", content: [] },
+            { title: "Web server hardening", content: [] }
+        ]
     },
     {
         id: 14,
         title: "Hacking Web Applications",
         icon: 'code-bracket',
         color: "bg-indigo-100 text-indigo-600",
-        subTopics: ["OWASP Top 10", "SQL Injection", "XSS (reflected, stored, DOM)", "CSRF attacks", "Command injection", "File inclusion", "Broken authentication", "API hacking", "Web app reconnaissance", "Cookie manipulation", "Web shell exploitation"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "OWASP Top 10", content: [] },
+            { title: "SQL Injection", content: [] },
+            { title: "XSS (reflected, stored, DOM)", content: [] },
+            { title: "CSRF attacks", content: [] },
+            { title: "Command injection", content: [] },
+            { title: "File inclusion", content: [] },
+            { title: "Broken authentication", content: [] },
+            { title: "API hacking", content: [] },
+            { title: "Web app reconnaissance", content: [] },
+            { title: "Cookie manipulation", content: [] },
+            { title: "Web shell exploitation", content: [] }
+        ]
     },
     {
         id: 15,
         title: "SQL Injection",
         icon: 'database',
         color: "bg-violet-100 text-violet-600",
-        subTopics: ["SQLi basics", "UNION-based SQLi", "Error-based SQLi", "Boolean/blind SQLi", "Time-based SQLi", "Out-of-band SQLi", "Bypassing WAF", "Extracting database data", "Targeting MySQL, MSSQL, Oracle, PostgreSQL"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "SQLi basics", content: [] },
+            { title: "UNION-based SQLi", content: [] },
+            { title: "Error-based SQLi", content: [] },
+            { title: "Boolean/blind SQLi", content: [] },
+            { title: "Time-based SQLi", content: [] },
+            { title: "Out-of-band SQLi", content: [] },
+            { title: "Bypassing WAF", content: [] },
+            { title: "Extracting database data", content: [] },
+            { title: "Targeting MySQL, MSSQL, Oracle, PostgreSQL", content: [] }
+        ]
     },
     {
         id: 16,
         title: "Hacking Wireless Networks",
         icon: 'wifi',
         color: "bg-purple-100 text-purple-600",
-        subTopics: ["Wi-Fi basics", "WEP/WPA/WPA2 cracking", "Evil twin attacks", "Rogue AP", "Deauthentication attack", "Wi-Fi phishing", "Bluetooth hacking", "NFC attacks", "Wireless security hardening"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "Wi-Fi basics", content: [] },
+            { title: "WEP/WPA/WPA2 cracking", content: [] },
+            { title: "Evil twin attacks", content: [] },
+            { title: "Rogue AP", content: [] },
+            { title: "Deauthentication attack", content: [] },
+            { title: "Wi-Fi phishing", content: [] },
+            { title: "Bluetooth hacking", content: [] },
+            { title: "NFC attacks", content: [] },
+            { title: "Wireless security hardening", content: [] }
+        ]
     },
     {
         id: 17,
         title: "Hacking Mobile Platforms",
         icon: 'smartphone',
         color: "bg-fuchsia-100 text-fuchsia-600",
-        subTopics: ["Android architecture", "iOS architecture", "Mobile malware", "Mobile app pentesting", "Rooting & jailbreak basics", "Mobile device management", "Mobile OS vulnerabilities", "App reverse engineering"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "Android architecture", content: [] },
+            { title: "iOS architecture", content: [] },
+            { title: "Mobile malware", content: [] },
+            { title: "Mobile app pentesting", content: [] },
+            { title: "Rooting & jailbreak basics", content: [] },
+            { title: "Mobile device management", content: [] },
+            { title: "Mobile OS vulnerabilities", content: [] },
+            { title: "App reverse engineering", content: [] }
+        ]
     },
     {
         id: 18,
         title: "IoT & OT Hacking",
         icon: 'iot',
         color: "bg-pink-100 text-pink-600",
-        subTopics: ["IoT device architecture", "IoT attack surface", "Smart home hacking", "Embedded device exploitation", "SCADA/ICS basics", "Modbus attacks", "RTU & PLC attacks", "IoT malware (Mirai, others)", "IoT security controls"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "IoT device architecture", content: [] },
+            { title: "IoT attack surface", content: [] },
+            { title: "Smart home hacking", content: [] },
+            { title: "Embedded device exploitation", content: [] },
+            { title: "SCADA/ICS basics", content: [] },
+            { title: "Modbus attacks", content: [] },
+            { title: "RTU & PLC attacks", content: [] },
+            { title: "IoT malware (Mirai, others)", content: [] },
+            { title: "IoT security controls", content: [] }
+        ]
     },
     {
         id: 19,
         title: "Cloud Computing",
         icon: 'cloud',
         color: "bg-rose-100 text-rose-600",
-        subTopics: ["Cloud security basics", "Shared responsibility model", "IAM in cloud", "Cloud attacks", "Serverless exploitation", "Container security", "Cloud network security", "Cloud enum (AWS/Azure/GCP)", "Cloud hardening techniques"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "Cloud security basics", content: [] },
+            { title: "Shared responsibility model", content: [] },
+            { title: "IAM in cloud", content: [] },
+            { title: "Cloud attacks", content: [] },
+            { title: "Serverless exploitation", content: [] },
+            { title: "Container security", content: [] },
+            { title: "Cloud network security", content: [] },
+            { title: "Cloud enum (AWS/Azure/GCP)", content: [] },
+            { title: "Cloud hardening techniques", content: [] }
+        ]
     },
     {
         id: 20,
         title: "Cryptography",
         icon: 'lock',
         color: "bg-stone-100 text-stone-600",
-        subTopics: ["Encryption types", "Hashing algorithms", "Digital signatures", "SSL/TLS", "Steganography", "Kerberos", "Disk encryption", "Email encryption", "Cryptanalysis techniques"].map(t => ({ title: t, content: [] }))
+        subTopics: [
+            { title: "Encryption types", content: [] },
+            { title: "Hashing algorithms", content: [] },
+            { title: "Digital signatures", content: [] },
+            { title: "SSL/TLS", content: [] },
+            { title: "Steganography", content: [] },
+            { title: "Kerberos", content: [] },
+            { title: "Disk encryption", content: [] },
+            { title: "Email encryption", content: [] },
+            { title: "Cryptanalysis techniques", content: [] }
+        ]
     }
 ];
 
