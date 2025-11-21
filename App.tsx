@@ -337,8 +337,17 @@ const App: React.FC = () => {
       setQuizHistory(prev => [attempt, ...prev]);
 
       // --- UNLOCKING LOGIC ---
-      // If user passes (score > 0 for now, can be strict > 70), unlock next section
-      if (result.score > 0 && activeModule && activeSubTopic && !activeContentPoint) {
+      // Requirements: 
+      // 1. Must be in Exam Mode
+      // 2. Must score >= 80%
+      // 3. Must be a full Sub-Topic quiz (not just a content point)
+      if (
+          activeQuizMode === 'exam' && 
+          result.score >= 80 && 
+          activeModule && 
+          activeSubTopic && 
+          !activeContentPoint
+      ) {
          // Find current hierarchy
          const currentExam = exams.find(e => e.modules.some(m => m.id === activeModule.id));
          if (currentExam) {
@@ -354,8 +363,6 @@ const App: React.FC = () => {
                     if (!unlockedSubTopics.includes(key)) {
                         const newUnlockedSubs = [...unlockedSubTopics, key];
                         setUnlockedSubTopics(newUnlockedSubs);
-                        // Persistence handled by useEffect
-                        // alert(`Congratulations! You've unlocked the next sub-topic: ${nextSubTopic.title}`);
                     }
                 } 
                 // 2. No next sub-topic, is there a next Module?
@@ -382,10 +389,6 @@ const App: React.FC = () => {
                              changed = true;
                         }
                     }
-
-                    if (changed) {
-                        // alert(`Congratulations! You've completed ${activeModule.title} and unlocked ${nextModule.title}!`);
-                    }
                 }
             }
          }
@@ -393,7 +396,7 @@ const App: React.FC = () => {
     }
     setLastQuizResult(result);
     setCurrentView('results');
-  }, [activeModule, activeSubTopic, activeContentPoint, exams, unlockedModules, unlockedSubTopics]);
+  }, [activeModule, activeSubTopic, activeContentPoint, exams, unlockedModules, unlockedSubTopics, activeQuizMode]);
 
   const handleReturnToDashboard = useCallback(() => {
     setActiveModule(null);
