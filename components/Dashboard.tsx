@@ -1,4 +1,5 @@
-import React, { useRef } from 'react';
+
+import React, { useRef, useMemo } from 'react';
 import ModuleListItem from './ModuleListItem';
 import Icon from './Icon';
 import type { Module, QuestionBank } from '../types';
@@ -54,6 +55,20 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const visibleModules = isAdmin ? modules : modules.filter(m => moduleVisibility[m.id] !== false);
 
+  // Calculate total questions available for this specific exam
+  const totalExamQuestions = useMemo(() => {
+    return modules.reduce((acc, module) => {
+      const moduleQuestions = questionBank[module.id];
+      if (!moduleQuestions) return acc;
+      
+      const moduleTotal = Object.values(moduleQuestions).reduce((mAcc: number, questions) => {
+        return mAcc + (Array.isArray(questions) ? questions.length : 0);
+      }, 0);
+      
+      return acc + moduleTotal;
+    }, 0);
+  }, [modules, questionBank]);
+
   return (
     <div className="w-full max-w-7xl mx-auto bg-white rounded-2xl shadow-xl flex flex-col lg:flex-row overflow-hidden border border-gray-200" style={{ minHeight: '90vh' }}>
       {/* Left Sidebar */}
@@ -98,11 +113,18 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Right Content */}
       <main className="w-full lg:w-3/4 p-6 lg:p-10 overflow-y-auto">
-        <div className="flex items-center mb-8">
-            <button onClick={onReturnToHome} className="p-2 rounded-full hover:bg-gray-100 mr-4" aria-label="Back to exams list">
+        <div className="flex items-start mb-8">
+            <button onClick={onReturnToHome} className="p-2 rounded-full hover:bg-gray-100 mr-4 mt-1" aria-label="Back to exams list">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             </button>
-            <h1 className="text-3xl font-bold text-gray-900">{isAdmin ? `Manage Modules: ${examTitle}` : `Training Modules: ${examTitle}`}</h1>
+            <div>
+                <h1 className="text-3xl font-bold text-gray-900">{isAdmin ? `Manage Modules: ${examTitle}` : `Training Modules: ${examTitle}`}</h1>
+                <div className="flex items-center gap-2 mt-2 text-gray-600">
+                    <span className="bg-indigo-50 text-indigo-700 text-sm font-medium px-3 py-1 rounded-full border border-indigo-100">
+                        {totalExamQuestions} Total Questions Available
+                    </span>
+                </div>
+            </div>
         </div>
         <div className="space-y-4">
           {visibleModules.map(module => (
