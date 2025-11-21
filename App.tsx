@@ -378,7 +378,8 @@ const App: React.FC = () => {
 
       const loadExternalData = async () => {
           try {
-              const response = await fetch('data.json');
+              // Add timestamp to bypass browser cache
+              const response = await fetch(`data.json?t=${new Date().getTime()}`);
               if (response.ok) {
                   const jsonData = await response.json();
                   console.log("Found data.json, attempting auto-import...");
@@ -1116,7 +1117,7 @@ const App: React.FC = () => {
         }
 
     } else {
-        alert("Invalid unlock code. Try 'dqadm' or 'adm'.");
+        alert("❌ Invalid unlock code.");
     }
   }, [exams, unlockedModules]);
 
