@@ -958,7 +958,7 @@ const App: React.FC = () => {
         
         if (Array.isArray(importedQuestions) && (importedQuestions.length === 0 || (
             importedQuestions[0].id && 
-            importedQuestions[0].question &&
+            importedQuestions[0].question && 
             Array.isArray(importedQuestions[0].options) &&
             importedQuestions[0].correctAnswer
         ))) {
@@ -1004,6 +1004,31 @@ const App: React.FC = () => {
     setActiveExamId(null);
     setCurrentView('home');
   };
+
+  // Unlock Code Handler
+  const handleUnlockAllContent = useCallback((code: string) => {
+    if (code === 'dqadm') {
+        const allModIds: number[] = [];
+        const allSubKeys: string[] = [];
+
+        exams.forEach(exam => {
+            exam.modules.forEach(mod => {
+                allModIds.push(mod.id);
+                mod.subTopics.forEach(st => {
+                    allSubKeys.push(getSubTopicLockKey(mod.id, st.title));
+                });
+            });
+        });
+
+        setUnlockedModules(allModIds);
+        setUnlockedSubTopics(allSubKeys);
+        localStorage.setItem('unlockedModules', JSON.stringify(allModIds));
+        localStorage.setItem('unlockedSubTopics', JSON.stringify(allSubKeys));
+        alert("🔓 All modules and sub-topics unlocked successfully!");
+    } else {
+        alert("Invalid unlock code.");
+    }
+  }, [exams]);
 
   const activeExam = useMemo(() => exams.find(e => e.id === activeExamId), [exams, activeExamId]);
 
@@ -1086,6 +1111,7 @@ const App: React.FC = () => {
                   generatingStatus={generatingStatus}
                   unlockedModules={unlockedModules}
                   unlockedSubTopics={unlockedSubTopics}
+                  onUnlockCode={handleUnlockAllContent}
                 />;
         }
         // Fallback to home if no active exam

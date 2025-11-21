@@ -1,5 +1,5 @@
 
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useState } from 'react';
 import ModuleListItem from './ModuleListItem';
 import Icon from './Icon';
 import type { Module, QuestionBank } from '../types';
@@ -35,6 +35,7 @@ interface DashboardProps {
   generatingStatus: string;
   unlockedModules: number[];
   unlockedSubTopics: string[];
+  onUnlockCode: (code: string) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
@@ -46,9 +47,10 @@ const Dashboard: React.FC<DashboardProps> = ({
   contentPointVisibility, onToggleContentPointVisibility,
   onAddModule, onEditModule, onAddSubTopic, onEditSubTopic, questionBank, onReturnToHome,
   onGenerateModuleAI, generatingModuleId, generatingStatus,
-  unlockedModules, unlockedSubTopics
+  unlockedModules, unlockedSubTopics, onUnlockCode
 }) => {
   const importInputRef = useRef<HTMLInputElement>(null);
+  const [unlockCodeInput, setUnlockCodeInput] = useState('');
 
   const handleImportClick = () => {
     importInputRef.current?.click();
@@ -121,6 +123,27 @@ const Dashboard: React.FC<DashboardProps> = ({
               </>
             )}
         </div>
+
+        {!isAdmin && (
+          <div className="mt-4 w-full pt-4 border-t border-gray-200">
+               <p className="text-xs text-gray-500 mb-2 text-left">Have an unlock code?</p>
+               <div className="flex gap-2">
+                   <input
+                      type="password"
+                      value={unlockCodeInput}
+                      onChange={(e) => setUnlockCodeInput(e.target.value)}
+                      placeholder="Code"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:border-indigo-500"
+                   />
+                   <button 
+                      onClick={() => { onUnlockCode(unlockCodeInput); setUnlockCodeInput(''); }} 
+                      className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700"
+                   >
+                      Unlock
+                   </button>
+               </div>
+          </div>
+        )}
       </aside>
 
       {/* Right Content */}
