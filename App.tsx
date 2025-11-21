@@ -16,6 +16,9 @@ import type { Module, QuestionBank, Question, Exam, SubTopic, QuizResult, QuizAt
 
 type View = 'dashboard' | 'quiz' | 'results' | 'progress' | 'home' | 'learning-hub';
 
+// Helper to generate unique key for subtopic locking
+const getSubTopicLockKey = (moduleId: number, subTopicTitle: string) => `${moduleId}-${subTopicTitle}`;
+
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('home');
   const [activeExamId, setActiveExamId] = useState<number | null>(null);
@@ -42,9 +45,26 @@ const App: React.FC = () => {
   const [contentPointVisibility, setContentPointVisibility] = useState<{ [moduleId: number]: { [subTopic: string]: { [contentPoint: string]: boolean } } }>({});
   const [exams, setExams] = useState<Exam[]>([]);
   
-  // Progression Locking State
-  const [unlockedModules, setUnlockedModules] = useState<number[]>([]); // Array of Module IDs
-  const [unlockedSubTopics, setUnlockedSubTopics] = useState<string[]>([]); // Array of "ModuleID-SubTopicTitle" strings
+  // Progression Locking State - Lazy Initialization from LocalStorage
+  const [unlockedModules, setUnlockedModules] = useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem('unlockedModules');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Error loading unlockedModules", e);
+      return [];
+    }
+  });
+
+  const [unlockedSubTopics, setUnlockedSubTopics] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('unlockedSubTopics');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Error loading unlockedSubTopics", e);
+      return [];
+    }
+  });
 
   const [quizSettings, setQuizSettings] = useState<{
     isOpen: boolean;
@@ -57,42 +77,42 @@ const App: React.FC = () => {
   const [generatingModuleId, setGeneratingModuleId] = useState<number | null>(null);
   const [generatingStatus, setGeneratingStatus] = useState<string>("");
 
-  // Helper to generate unique key for subtopic locking
-  const getSubTopicLockKey = (moduleId: number, subTopicTitle: string) => `${moduleId}-${subTopicTitle}`;
+  // Persistence Effects for Locking State
+  useEffect(() => {
+    localStorage.setItem('unlockedModules', JSON.stringify(unlockedModules));
+  }, [unlockedModules]);
 
-  // Load data from local storage on initial render
+  useEffect(() => {
+    localStorage.setItem('unlockedSubTopics', JSON.stringify(unlockedSubTopics));
+  }, [unlockedSubTopics]);
+
+  // Effect to set default unlocked content if everything is locked
+  useEffect(() => {
+    if (exams.length > 0) {
+        // Default: Unlock 1st module of 1st exam if no modules are unlocked
+        if (unlockedModules.length === 0 && exams[0].modules.length > 0) {
+             const firstModId = exams[0].modules[0].id;
+             setUnlockedModules([firstModId]);
+        }
+
+        // Default: Unlock 1st subtopic of 1st module if no subtopics are unlocked
+        if (unlockedSubTopics.length === 0 && exams[0].modules.length > 0 && exams[0].modules[0].subTopics.length > 0) {
+            const firstMod = exams[0].modules[0];
+            const key = getSubTopicLockKey(firstMod.id, firstMod.subTopics[0].title);
+            setUnlockedSubTopics([key]);
+        }
+    }
+  }, [exams, unlockedModules.length, unlockedSubTopics.length]);
+
+  // Load other data from local storage on initial render
   useEffect(() => {
     // Load Exams
     try {
         const savedExams = localStorage.getItem('exams');
         const loadedExams = savedExams ? JSON.parse(savedExams) : INITIAL_EXAM_DATA;
         setExams(loadedExams);
-
-        // Initialize Locks if empty (Unlock first module of first exam by default)
-        const savedUnlockedMods = localStorage.getItem('unlockedModules');
-        const savedUnlockedSubs = localStorage.getItem('unlockedSubTopics');
-
-        if (savedUnlockedMods) {
-            setUnlockedModules(JSON.parse(savedUnlockedMods));
-        } else if (loadedExams.length > 0 && loadedExams[0].modules.length > 0) {
-             // Default: Unlock 1st module
-             const firstModId = loadedExams[0].modules[0].id;
-             setUnlockedModules([firstModId]);
-             localStorage.setItem('unlockedModules', JSON.stringify([firstModId]));
-        }
-
-        if (savedUnlockedSubs) {
-            setUnlockedSubTopics(JSON.parse(savedUnlockedSubs));
-        } else if (loadedExams.length > 0 && loadedExams[0].modules.length > 0 && loadedExams[0].modules[0].subTopics.length > 0) {
-            // Default: Unlock 1st subtopic of 1st module
-            const firstMod = loadedExams[0].modules[0];
-            const key = getSubTopicLockKey(firstMod.id, firstMod.subTopics[0].title);
-            setUnlockedSubTopics([key]);
-            localStorage.setItem('unlockedSubTopics', JSON.stringify([key]));
-        }
-
     } catch(e) {
-        console.error("Failed to load data from local storage", e);
+        console.error("Failed to load exams from local storage", e);
         setExams(INITIAL_EXAM_DATA);
     }
     
@@ -334,7 +354,7 @@ const App: React.FC = () => {
                     if (!unlockedSubTopics.includes(key)) {
                         const newUnlockedSubs = [...unlockedSubTopics, key];
                         setUnlockedSubTopics(newUnlockedSubs);
-                        localStorage.setItem('unlockedSubTopics', JSON.stringify(newUnlockedSubs));
+                        // Persistence handled by useEffect
                         // alert(`Congratulations! You've unlocked the next sub-topic: ${nextSubTopic.title}`);
                     }
                 } 
@@ -350,7 +370,6 @@ const App: React.FC = () => {
                     if (!unlockedModules.includes(nextModule.id)) {
                         updatedModules = [...unlockedModules, nextModule.id];
                         setUnlockedModules(updatedModules);
-                        localStorage.setItem('unlockedModules', JSON.stringify(updatedModules));
                         changed = true;
                     }
 
@@ -360,7 +379,6 @@ const App: React.FC = () => {
                         if (!unlockedSubTopics.includes(nextSubKey)) {
                              updatedSubs = [...updatedSubs, nextSubKey];
                              setUnlockedSubTopics(updatedSubs);
-                             localStorage.setItem('unlockedSubTopics', JSON.stringify(updatedSubs));
                              changed = true;
                         }
                     }
@@ -1022,8 +1040,7 @@ const App: React.FC = () => {
 
         setUnlockedModules(allModIds);
         setUnlockedSubTopics(allSubKeys);
-        localStorage.setItem('unlockedModules', JSON.stringify(allModIds));
-        localStorage.setItem('unlockedSubTopics', JSON.stringify(allSubKeys));
+        // Persistence handled by useEffect
         alert("🔓 All modules and sub-topics unlocked successfully!");
     } else {
         alert("Invalid unlock code.");
