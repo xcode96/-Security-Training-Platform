@@ -127,22 +127,33 @@ const App: React.FC = () => {
   }, [unlockedSubTopics]);
 
   // Effect to set default unlocked content if everything is locked
+  // ENSURES FIRST MODULE OF *EVERY* EXAM IS UNLOCKED
   useEffect(() => {
     if (exams.length > 0) {
-        // Default: Unlock 1st module of 1st exam if no modules are unlocked
-        if (unlockedModules.length === 0 && exams[0].modules.length > 0) {
-             const firstModId = exams[0].modules[0].id;
-             setUnlockedModules([firstModId]);
-        }
+        const neededModules: number[] = [];
+        const neededSubTopics: string[] = [];
 
-        // Default: Unlock 1st subtopic of 1st module if no subtopics are unlocked
-        if (unlockedSubTopics.length === 0 && exams[0].modules.length > 0 && exams[0].modules[0].subTopics.length > 0) {
-            const firstMod = exams[0].modules[0];
-            const key = getSubTopicLockKey(firstMod.id, firstMod.subTopics[0].title);
-            setUnlockedSubTopics([key]);
+        exams.forEach(exam => {
+             if (exam.modules.length > 0) {
+                 const firstMod = exam.modules[0];
+                 neededModules.push(firstMod.id);
+                 
+                 if (firstMod.subTopics.length > 0) {
+                     const firstSub = firstMod.subTopics[0];
+                     neededSubTopics.push(getSubTopicLockKey(firstMod.id, firstSub.title));
+                 }
+             }
+        });
+
+        const missingModules = neededModules.filter(id => !unlockedModules.includes(id));
+        const missingSubTopics = neededSubTopics.filter(key => !unlockedSubTopics.includes(key));
+
+        if (missingModules.length > 0 || missingSubTopics.length > 0) {
+            setUnlockedModules(prev => [...prev, ...missingModules]);
+            setUnlockedSubTopics(prev => [...prev, ...missingSubTopics]);
         }
     }
-  }, [exams, unlockedModules.length, unlockedSubTopics.length]);
+  }, [exams, unlockedModules, unlockedSubTopics]);
 
   // Load other data from local storage on initial render
   useEffect(() => {
@@ -1072,12 +1083,14 @@ export const INITIAL_QUESTION_BANK: QuestionBank = ${jsonBank};
             importedQuestions[0].correctAnswer
         ))) {
             const topicIdentifier = getTopicIdentifier(subTopic, contentPoint);
-            const newBank: any = { ...questionBank };
-            if (!newBank[module.id]) {
-                newBank[module.id] = {};
-            }
-            // Explicitly cast to unknown then Question[] to avoid type errors
-            newBank[module.id][topicIdentifier] = importedQuestions as unknown as Question[];
+            const newBank: QuestionBank = { ...questionBank };
+            
+            // Ensure we have a valid object for the module
+            const currentModuleQuestions = newBank[module.id] || {};
+            const moduleQuestions: Record<string, Question[]> = { ...currentModuleQuestions };
+
+            moduleQuestions[topicIdentifier] = importedQuestions as unknown as Question[];
+            newBank[module.id] = moduleQuestions;
             updateQuestionBank(newBank);
             alert(`Successfully imported ${importedQuestions.length} questions for ${contentPoint || subTopic}.`);
         } else {
@@ -1134,22 +1147,27 @@ export const INITIAL_QUESTION_BANK: QuestionBank = ${jsonBank};
         const isFullyUnlocked = allModIds.every(id => unlockedModules.includes(id));
 
         if (isFullyUnlocked) {
-            // Reset to default
+            // Reset to default (First module of EVERY exam)
             const defaultModIds: number[] = [];
             const defaultSubKeys: string[] = [];
             
-            if (exams.length > 0 && exams[0].modules.length > 0) {
-                defaultModIds.push(exams[0].modules[0].id);
-                if (exams[0].modules[0].subTopics.length > 0) {
-                    defaultSubKeys.push(getSubTopicLockKey(exams[0].modules[0].id, exams[0].modules[0].subTopics[0].title));
+            exams.forEach(exam => {
+                if (exam.modules.length > 0) {
+                     const firstMod = exam.modules[0];
+                     defaultModIds.push(firstMod.id);
+                     
+                     if (firstMod.subTopics.length > 0) {
+                         const firstSub = firstMod.subTopics[0];
+                         defaultSubKeys.push(getSubTopicLockKey(firstMod.id, firstSub.title));
+                     }
                 }
-            }
+            });
             
             setUnlockedModules(defaultModIds);
             setUnlockedSubTopics(defaultSubKeys);
             localStorage.setItem('unlockedModules', JSON.stringify(defaultModIds));
             localStorage.setItem('unlockedSubTopics', JSON.stringify(defaultSubKeys));
-            alert("🔒 Modules have been LOCKED (Reset to default).");
+            alert("🔒 Modules have been LOCKED (Reset to default for all exams).");
 
         } else {
             // Unlock everything
