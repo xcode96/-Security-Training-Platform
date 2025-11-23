@@ -18,6 +18,7 @@ interface DashboardProps {
   onImportQuestions: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onExportTopic: (module: Module, subTopic: string, contentPoint?: string) => void;
   onImportTopic: (event: React.ChangeEvent<HTMLInputElement>, module: Module, subTopic: string, contentPoint?: string) => void;
+  onExportSourceCode: () => void;
   moduleVisibility: { [moduleId: number]: boolean };
   onToggleModuleVisibility: (moduleId: number) => void;
   subTopicVisibility: { [moduleId: number]: { [subTopic: string]: boolean } };
@@ -43,7 +44,7 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ 
   examTitle, modules, onConfigureQuiz, onViewProgress, onViewLearningHub,
   isAdmin, onAdminLoginClick, onLogout, onManageQuestions, 
-  onExportQuestions, onImportQuestions, onExportTopic, onImportTopic,
+  onExportQuestions, onImportQuestions, onExportTopic, onImportTopic, onExportSourceCode,
   moduleVisibility, onToggleModuleVisibility,
   subTopicVisibility, onToggleSubTopicVisibility,
   contentPointVisibility, onToggleContentPointVisibility,
@@ -110,7 +111,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         {/* Sidebar Content - Collapsible on Mobile, Visible on Tablet/Desktop */}
-        <div className={`p-6 lg:p-8 flex flex-col items-center text-center transition-all duration-300 ease-in-out h-full ${isMobileMenuOpen ? 'block' : 'hidden md:flex'}`}>
+        <div className={`p-6 lg:p-8 flex flex-col items-center text-center transition-all duration-300 ease-in-out h-full overflow-y-auto ${isMobileMenuOpen ? 'flex' : 'hidden md:flex'}`}>
             <h2 className="text-sm text-gray-500">Welcome</h2>
             <h1 className="text-2xl font-bold text-gray-900 mb-6">{isAdmin ? 'Admin User' : 'XCODE96'}</h1>
             
@@ -141,12 +142,16 @@ const Dashboard: React.FC<DashboardProps> = ({
                     className="hidden"
                     />
                     <button onClick={handleImportClick} className="w-full py-2.5 px-4 bg-sky-500 text-white font-semibold rounded-lg hover:bg-sky-600 transition-colors duration-300 flex items-center justify-center gap-2 text-sm">
-                    <Icon iconName="upload" className="h-4 w-4"/>
-                    Import All Questions
+                        <Icon iconName="upload" className="h-4 w-4"/>
+                        Import JSON
                     </button>
                     <button onClick={onExportQuestions} className="w-full py-2.5 px-4 bg-pink-500 text-white font-semibold rounded-lg hover:bg-pink-600 transition-colors duration-300 flex items-center justify-center gap-2 text-sm">
-                    <Icon iconName="download" className="h-4 w-4"/>
-                    Export All Questions
+                        <Icon iconName="download" className="h-4 w-4"/>
+                        Export JSON
+                    </button>
+                    <button onClick={onExportSourceCode} className="w-full py-2.5 px-4 bg-slate-800 text-white font-semibold rounded-lg hover:bg-slate-900 transition-colors duration-300 flex items-center justify-center gap-2 text-sm border border-slate-600" title="Download constants.ts file to update source code">
+                        <Icon iconName="code-bracket" className="h-4 w-4"/>
+                        Download Source
                     </button>
                 </>
                 )}
