@@ -39,18 +39,19 @@ const Home: React.FC<HomeProps> = ({ exams, onSelectExam, isAdmin, onAddExam, on
     
     return (
         <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 bg-white rounded-2xl shadow-xl border border-gray-200">
-            <header className="flex justify-between items-center mb-8">
+            <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Cyber Security Training Platform</h1>
-                    <p className="text-gray-600">Select an exam to begin your training.</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Cyber Security Training Platform</h1>
+                    <p className="text-gray-600 text-sm sm:text-base">Select an exam to begin your training.</p>
                 </div>
-                <div className="flex items-center gap-3">
-                     <button onClick={onViewLearningHub} className="py-2 px-4 bg-indigo-50 text-indigo-700 font-semibold rounded-lg hover:bg-indigo-100 transition-colors duration-300 flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                     <button onClick={onViewLearningHub} className="flex-1 sm:flex-none py-2 px-4 bg-indigo-50 text-indigo-700 font-semibold rounded-lg hover:bg-indigo-100 transition-colors duration-300 flex items-center justify-center gap-2 text-sm sm:text-base whitespace-nowrap">
                         <Icon iconName="book-open" className="h-5 w-5"/>
-                        Learning Hub
+                        <span>Learning Hub</span>
                     </button>
-                     <button onClick={isAdmin ? onLogout : onAdminLoginClick} className="py-2 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors duration-300">
-                        {isAdmin ? 'Logout' : 'Admin Login'}
+                     <button onClick={isAdmin ? onLogout : onAdminLoginClick} className="flex-1 sm:flex-none py-2 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors duration-300 flex items-center justify-center gap-2 text-sm sm:text-base whitespace-nowrap">
+                        <Icon iconName={isAdmin ? 'lock' : 'users'} className="h-5 w-5"/>
+                        <span>{isAdmin ? 'Logout' : 'Admin Login'}</span>
                     </button>
                 </div>
             </header>
@@ -59,7 +60,7 @@ const Home: React.FC<HomeProps> = ({ exams, onSelectExam, isAdmin, onAddExam, on
                     <ExamCard key={exam.id} exam={exam} onSelect={() => onSelectExam(exam.id)} />
                 ))}
                  {isAdmin && (
-                    <button onClick={handleAddExamClick} className="w-full h-full p-6 border-2 border-dashed border-gray-300 text-gray-500 font-semibold rounded-xl hover:bg-gray-50 transition-colors duration-300 flex flex-col justify-center items-center">
+                    <button onClick={handleAddExamClick} className="w-full h-full p-6 border-2 border-dashed border-gray-300 text-gray-500 font-semibold rounded-xl hover:bg-gray-50 transition-colors duration-300 flex flex-col justify-center items-center min-h-[200px]">
                         <span className="text-2xl mb-2">+</span>
                         <span>Add New Exam Folder</span>
                     </button>

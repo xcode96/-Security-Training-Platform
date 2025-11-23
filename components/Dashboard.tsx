@@ -1,3 +1,4 @@
+
 import React, { useRef, useMemo, useState } from 'react';
 import ModuleListItem from './ModuleListItem';
 import Icon from './Icon';
@@ -52,6 +53,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const importInputRef = useRef<HTMLInputElement>(null);
   const [unlockCodeInput, setUnlockCodeInput] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleImportClick = () => {
     importInputRef.current?.click();
@@ -81,110 +83,138 @@ const Dashboard: React.FC<DashboardProps> = ({
   }, [modules, questionBank]);
 
   return (
-    <div className="w-full max-w-7xl mx-auto bg-white rounded-2xl shadow-xl flex flex-col lg:flex-row overflow-hidden border border-gray-200" style={{ minHeight: '90vh' }}>
+    <div className="w-full max-w-7xl mx-auto bg-white rounded-2xl shadow-xl flex flex-col md:flex-row overflow-hidden border border-gray-200" style={{ minHeight: '90vh' }}>
       {/* Left Sidebar */}
-      <aside className="w-full lg:w-1/4 bg-gray-50 p-6 lg:p-8 border-b lg:border-r border-gray-200 flex flex-col items-center text-center">
-        <h2 className="text-sm text-gray-500">Welcome</h2>
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">{isAdmin ? 'Admin User' : 'XCODE96'}</h1>
-        
-        <div className="text-gray-600 bg-gray-200/60 p-4 rounded-lg w-full">
-            <p className="text-sm">Track your performance, identify weak areas, and monitor improvement over time.</p>
-             <button onClick={onViewProgress} className="mt-4 w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-lg hover:opacity-90 transition-opacity duration-300">
-                View My Progress
-            </button>
-             <button onClick={onViewLearningHub} className="mt-2 w-full py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors duration-300 flex items-center justify-center gap-2">
-                <Icon iconName="book-open" className="h-4 w-4"/>
-                Learning Hub
+      <aside className="w-full md:w-72 lg:w-80 flex-shrink-0 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col">
+        {/* Mobile Menu Toggle */}
+        <div className="p-4 md:hidden flex justify-between items-center bg-gray-100/50">
+            <div className="flex items-center gap-2">
+                <span className="font-bold text-gray-700">{isAdmin ? 'Admin' : 'Menu'}</span>
+                {syncStatus && (
+                     <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                         <span className={`h-1.5 w-1.5 rounded-full ${
+                             syncStatus === 'syncing' ? 'bg-yellow-400 animate-pulse' : 
+                             syncStatus === 'synced' ? 'bg-green-500' : 
+                             syncStatus === 'error' ? 'bg-red-500' : 'bg-gray-300'
+                         }`}></span>
+                         <span>{syncStatus === 'synced' ? 'Synced' : ''}</span>
+                     </div>
+                )}
+            </div>
+            <button 
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+                className="text-gray-600 hover:text-gray-900 focus:outline-none"
+            >
+                <Icon iconName="chevron-down" className={`h-5 w-5 transform transition-transform duration-200 ${isMobileMenuOpen ? 'rotate-180' : ''}`}/>
             </button>
         </div>
-        
-        {isAdmin && <p className="text-indigo-700 bg-indigo-100 p-3 rounded-lg mt-6 w-full">You are in Admin Mode.</p>}
 
-        <div className="mt-auto w-full space-y-3 pt-6">
-            <button onClick={isAdmin ? onLogout : onAdminLoginClick} className="w-full py-3 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors duration-300">
-                {isAdmin ? 'Logout' : 'Admin Login'}
-            </button>
-            {isAdmin && (
-              <>
-                <input
-                  type="file"
-                  ref={importInputRef}
-                  onChange={onImportQuestions}
-                  accept=".json"
-                  className="hidden"
-                />
-                <button onClick={handleImportClick} className="w-full py-3 px-4 bg-sky-500 text-white font-semibold rounded-lg hover:bg-sky-600 transition-colors duration-300 flex items-center justify-center gap-2">
-                  <Icon iconName="upload" className="h-5 w-5"/>
-                  Import All Questions
+        {/* Sidebar Content - Collapsible on Mobile, Visible on Tablet/Desktop */}
+        <div className={`p-6 lg:p-8 flex flex-col items-center text-center transition-all duration-300 ease-in-out h-full ${isMobileMenuOpen ? 'block' : 'hidden md:flex'}`}>
+            <h2 className="text-sm text-gray-500">Welcome</h2>
+            <h1 className="text-2xl font-bold text-gray-900 mb-6">{isAdmin ? 'Admin User' : 'XCODE96'}</h1>
+            
+            <div className="text-gray-600 bg-gray-200/60 p-4 rounded-lg w-full">
+                <p className="text-sm">Track your performance, identify weak areas, and monitor improvement over time.</p>
+                <button onClick={onViewProgress} className="mt-4 w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-lg hover:opacity-90 transition-opacity duration-300 text-sm">
+                    View My Progress
                 </button>
-                <button onClick={onExportQuestions} className="w-full py-3 px-4 bg-pink-500 text-white font-semibold rounded-lg hover:bg-pink-600 transition-colors duration-300 flex items-center justify-center gap-2">
-                  <Icon iconName="download" className="h-5 w-5"/>
-                  Export All Questions
+                <button onClick={onViewLearningHub} className="mt-2 w-full py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors duration-300 flex items-center justify-center gap-2 text-sm">
+                    <Icon iconName="book-open" className="h-4 w-4"/>
+                    Learning Hub
                 </button>
-              </>
+            </div>
+            
+            {isAdmin && <p className="text-indigo-700 bg-indigo-100 p-3 rounded-lg mt-6 w-full text-sm">You are in Admin Mode.</p>}
+
+            <div className="mt-auto w-full space-y-3 pt-6">
+                <button onClick={isAdmin ? onLogout : onAdminLoginClick} className="w-full py-2.5 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors duration-300 text-sm">
+                    {isAdmin ? 'Logout' : 'Admin Login'}
+                </button>
+                {isAdmin && (
+                <>
+                    <input
+                    type="file"
+                    ref={importInputRef}
+                    onChange={onImportQuestions}
+                    accept=".json"
+                    className="hidden"
+                    />
+                    <button onClick={handleImportClick} className="w-full py-2.5 px-4 bg-sky-500 text-white font-semibold rounded-lg hover:bg-sky-600 transition-colors duration-300 flex items-center justify-center gap-2 text-sm">
+                    <Icon iconName="upload" className="h-4 w-4"/>
+                    Import All Questions
+                    </button>
+                    <button onClick={onExportQuestions} className="w-full py-2.5 px-4 bg-pink-500 text-white font-semibold rounded-lg hover:bg-pink-600 transition-colors duration-300 flex items-center justify-center gap-2 text-sm">
+                    <Icon iconName="download" className="h-4 w-4"/>
+                    Export All Questions
+                    </button>
+                </>
+                )}
+            </div>
+
+            {!isAdmin && (
+            <div className="mt-4 w-full pt-4 border-t border-gray-200">
+                <p className="text-xs text-gray-500 mb-2 text-left">Have an unlock code?</p>
+                <div className="flex gap-2">
+                    <input
+                        type="password"
+                        value={unlockCodeInput}
+                        onChange={(e) => setUnlockCodeInput(e.target.value)}
+                        placeholder="Code"
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:border-indigo-500"
+                    />
+                    <button 
+                        onClick={() => { onUnlockCode(unlockCodeInput); setUnlockCodeInput(''); }} 
+                        className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700"
+                    >
+                        Unlock
+                    </button>
+                </div>
+            </div>
+            )}
+            
+            {/* Sync Status Indicator - Desktop */}
+            {syncStatus && (
+                <div className="mt-4 w-full flex items-center justify-between text-xs text-gray-500 bg-gray-100 p-2 rounded">
+                    <div className="flex items-center gap-2">
+                        <span className={`h-2 w-2 rounded-full ${
+                            syncStatus === 'syncing' ? 'bg-yellow-400 animate-pulse' : 
+                            syncStatus === 'synced' ? 'bg-green-500' : 
+                            syncStatus === 'error' ? 'bg-red-500' : 'bg-gray-300'
+                        }`}></span>
+                        <span>
+                            {syncStatus === 'syncing' ? 'Syncing...' : 
+                            syncStatus === 'synced' ? 'Synced' : 
+                            syncStatus === 'error' ? 'Sync Failed' : 'Offline'}
+                        </span>
+                    </div>
+                    {onManualSync && (
+                        <button onClick={onManualSync} title="Check for updates" className="hover:text-indigo-600 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                    )}
+                </div>
             )}
         </div>
-
-        {!isAdmin && (
-          <div className="mt-4 w-full pt-4 border-t border-gray-200">
-               <p className="text-xs text-gray-500 mb-2 text-left">Have an unlock code?</p>
-               <div className="flex gap-2">
-                   <input
-                      type="password"
-                      value={unlockCodeInput}
-                      onChange={(e) => setUnlockCodeInput(e.target.value)}
-                      placeholder="Code"
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:border-indigo-500"
-                   />
-                   <button 
-                      onClick={() => { onUnlockCode(unlockCodeInput); setUnlockCodeInput(''); }} 
-                      className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded hover:bg-indigo-700"
-                   >
-                      Unlock
-                   </button>
-               </div>
-          </div>
-        )}
-        
-        {/* Sync Status Indicator */}
-        {syncStatus && (
-            <div className="mt-4 w-full flex items-center justify-between text-xs text-gray-500 bg-gray-100 p-2 rounded">
-                 <div className="flex items-center gap-2">
-                     <span className={`h-2 w-2 rounded-full ${
-                         syncStatus === 'syncing' ? 'bg-yellow-400 animate-pulse' : 
-                         syncStatus === 'synced' ? 'bg-green-500' : 
-                         syncStatus === 'error' ? 'bg-red-500' : 'bg-gray-300'
-                     }`}></span>
-                     <span>
-                        {syncStatus === 'syncing' ? 'Syncing Data...' : 
-                         syncStatus === 'synced' ? 'Data Synced' : 
-                         syncStatus === 'error' ? 'Sync Failed' : 'Offline'}
-                     </span>
-                 </div>
-                 {onManualSync && (
-                     <button onClick={onManualSync} title="Check for updates" className="hover:text-indigo-600 transition-colors">
-                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                         </svg>
-                     </button>
-                 )}
-            </div>
-        )}
       </aside>
 
       {/* Right Content */}
-      <main className="w-full lg:w-3/4 p-6 lg:p-10 overflow-y-auto">
-        <div className="flex items-start mb-8">
-            <button onClick={onReturnToHome} className="p-2 rounded-full hover:bg-gray-100 mr-4 mt-1" aria-label="Back to exams list">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-            </button>
-            <div>
-                <h1 className="text-3xl font-bold text-gray-900">{isAdmin ? `Manage Modules: ${examTitle}` : `Training Modules: ${examTitle}`}</h1>
-                <div className="flex items-center gap-2 mt-2 text-gray-600">
-                    <span className="bg-indigo-50 text-indigo-700 text-sm font-medium px-3 py-1 rounded-full border border-indigo-100">
-                        {totalExamQuestions} Total Questions Available
-                    </span>
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 overflow-y-auto">
+        <div className="flex flex-col sm:flex-row items-start mb-6 sm:mb-8 gap-4">
+            <div className="flex items-center w-full sm:w-auto">
+                <button onClick={onReturnToHome} className="p-2 rounded-full hover:bg-gray-100 mr-2" aria-label="Back to exams list">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                </button>
+                <div className="flex-1">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">{isAdmin ? `Manage: ${examTitle}` : `${examTitle}`}</h1>
                 </div>
+            </div>
+             <div className="flex items-center gap-2 mt-1 ml-10 sm:ml-0">
+                <span className="bg-indigo-50 text-indigo-700 text-xs sm:text-sm font-medium px-3 py-1 rounded-full border border-indigo-100 whitespace-nowrap">
+                    {totalExamQuestions} Questions
+                </span>
             </div>
         </div>
         <div className="space-y-4">

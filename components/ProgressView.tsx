@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import type { QuizAttempt, Exam, Module } from '../types';
 import Icon from './Icon';
@@ -78,21 +79,21 @@ const ProgressView: React.FC<ProgressViewProps> = ({ quizHistory, exams, onRetur
     }, [quizHistory, allModules]);
 
     return (
-        <div className="w-full max-w-7xl mx-auto bg-white rounded-2xl shadow-xl p-6 lg:p-10 border border-gray-200 text-gray-900 overflow-y-auto" style={{ maxHeight: '95vh' }}>
+        <div className="w-full max-w-7xl mx-auto bg-white rounded-2xl shadow-xl p-4 sm:p-6 lg:p-10 border border-gray-200 text-gray-900 overflow-y-auto" style={{ maxHeight: '95vh' }}>
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center">
-                     <button onClick={onReturnToDashboard} className="p-2 rounded-full hover:bg-gray-100 mr-4" aria-label="Back to dashboard">
+                     <button onClick={onReturnToDashboard} className="p-2 rounded-full hover:bg-gray-100 mr-2 sm:mr-4" aria-label="Back to dashboard">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                     </button>
                     <div>
-                        <h1 className="text-3xl font-bold">Your Study Progress</h1>
-                        <p className="text-gray-600">All data is stored locally in your browser - no account needed!</p>
+                        <h1 className="text-2xl sm:text-3xl font-bold">Your Study Progress</h1>
+                        <p className="text-sm sm:text-base text-gray-600">All data is stored locally in your browser - no account needed!</p>
                     </div>
                 </div>
             </div>
 
             {/* Overall Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
                 <StatCard title="Total Attempts" value={overallStats.totalAttempts.toString()} icon={<span className="text-2xl">🎯</span>} />
                 <StatCard title="Average Score" value={`${overallStats.averageScore}%`} icon={<span className="text-2xl text-green-500">✓</span>} />
                 <StatCard title="Study Time" value={formatTime(overallStats.studyTime)} icon={<span className="text-2xl">⏱️</span>} />
@@ -151,11 +152,11 @@ const ProgressView: React.FC<ProgressViewProps> = ({ quizHistory, exams, onRetur
              {/* Manage Progress */}
             <div className="mt-12">
                 <h2 className="text-xl font-bold mb-4">Manage Your Progress</h2>
-                 <div className="flex items-center gap-4">
-                    <button className="py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <button className="w-full sm:w-auto py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
                         Export Progress
                     </button>
-                    <button onClick={onClearProgress} className="py-2 px-4 bg-red-100 text-red-700 font-semibold rounded-lg hover:bg-red-200 transition-colors">
+                    <button onClick={onClearProgress} className="w-full sm:w-auto py-2 px-4 bg-red-100 text-red-700 font-semibold rounded-lg hover:bg-red-200 transition-colors">
                         Clear All Progress
                     </button>
                  </div>

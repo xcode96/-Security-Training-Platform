@@ -48,16 +48,16 @@ const ContentPointItem: React.FC<ContentPointItemProps> = ({ item, isAdmin, ques
     };
 
   return (
-    <li className={`text-sm text-gray-600 py-1 list-disc list-inside flex justify-between items-center group ${isAdmin && !isVisible ? 'opacity-40' : ''}`}>
-      <div className="flex items-center gap-2">
-        <span className={isLocked && !isAdmin ? 'text-gray-400' : ''}>{item}</span>
+    <li className={`text-sm text-gray-600 py-1.5 list-disc list-inside flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 group ${isAdmin && !isVisible ? 'opacity-40' : ''}`}>
+      <div className="flex items-center gap-2 overflow-hidden">
+        <span className={`truncate ${isLocked && !isAdmin ? 'text-gray-400' : ''}`}>{item}</span>
         {!isAdmin && questionCount > 0 && (
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isLocked ? 'text-gray-400 bg-gray-100' : 'text-sky-700 bg-sky-100'}`}>
-                {questionCount} Qs
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap ${isLocked ? 'text-gray-400 bg-gray-100' : 'text-sky-700 bg-sky-100'}`}>
+                {questionCount}
             </span>
         )}
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
         {isAdmin ? (
             <>
               <button
@@ -142,14 +142,14 @@ const SubTopicItem: React.FC<SubTopicItemProps> = ({
 
   return (
     <li className={`flex flex-col rounded-md transition-all duration-200 group ${isAdmin && !isVisible ? 'opacity-40' : ''} ${isLocked && !isAdmin ? 'bg-gray-50' : ''}`}>
-      <div className={`flex items-start justify-between py-2 px-2 rounded-md`}>
-        <div className="flex items-start gap-3">
-            <div className="relative">
+      <div className={`flex flex-col sm:flex-row sm:items-start justify-between py-2 px-2 rounded-md gap-2 sm:gap-0`}>
+        <div className="flex items-start gap-3 w-full">
+            <div className="relative flex-shrink-0">
                <Icon iconName={isLocked && !isAdmin ? 'lock' : 'folder'} className={`h-5 w-5 mt-px ${isLocked && !isAdmin ? 'text-gray-400' : 'text-indigo-500'}`} />
             </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1">
-                <span className={`text-sm font-semibold ${isLocked && !isAdmin ? 'text-gray-500' : 'text-gray-800'}`}>{topic.title}</span>
+            <div className="flex flex-col w-full overflow-hidden">
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className={`text-sm font-semibold break-words ${isLocked && !isAdmin ? 'text-gray-500' : 'text-gray-800'}`}>{topic.title}</span>
                 {isAdmin && (
                     <button onClick={handleEdit} title="Edit sub-topic name" className="p-1 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-800 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Icon iconName="edit" className="h-3 w-3" />
@@ -157,10 +157,10 @@ const SubTopicItem: React.FC<SubTopicItemProps> = ({
                 )}
               </div>
               {!isAdmin && questionCount > 0 && (
-                <p className="text-xs text-gray-500 mt-1">{questionCount} question{questionCount !== 1 ? 's' : ''} available</p>
+                <p className="text-xs text-gray-500 mt-0.5">{questionCount} question{questionCount !== 1 ? 's' : ''} available</p>
               )}
               {topic.content.length > 0 && (
-                <ul className="pl-0 pr-4 mt-1 space-y-1">
+                <ul className="pl-0 pr-0 sm:pr-4 mt-2 space-y-1 w-full">
                     {topic.content.map((item, index) => {
                        const isContentPointVisible = contentPointVisibility?.[item] ?? true;
                        if (!isAdmin && !isContentPointVisible) return null;
@@ -184,7 +184,7 @@ const SubTopicItem: React.FC<SubTopicItemProps> = ({
               )}
             </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto mt-1 sm:mt-0">
           {isAdmin ? (
             <>
               <button
@@ -226,7 +226,7 @@ const SubTopicItem: React.FC<SubTopicItemProps> = ({
                   <button
                     onClick={(e) => { e.stopPropagation(); onConfigureSubTopicQuiz(); }}
                     disabled={questionCount === 0}
-                    className="px-3 py-1 text-xs font-semibold text-indigo-700 bg-indigo-100 rounded-full hover:bg-indigo-200 transition-colors disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
+                    className="px-3 py-1 text-xs font-semibold text-indigo-700 bg-indigo-100 rounded-full hover:bg-indigo-200 transition-colors disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed whitespace-nowrap"
                     aria-label={`Start quiz for ${topic.title}`}
                   >
                     Start Quiz
@@ -280,18 +280,18 @@ const ModuleListItem: React.FC<ModuleListItemProps> = ({
 
   const getStatusBadge = () => {
     if (isAdmin) {
-        return <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-1 rounded-full">Admin Mode</span>;
+        return <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-1 rounded-full whitespace-nowrap">Admin</span>;
     }
     if (isLocked) {
-        return <span className="text-xs font-semibold text-gray-500 bg-gray-200 px-2 py-1 rounded-full flex items-center gap-1"><Icon iconName="lock" className="h-3 w-3"/> Locked</span>;
+        return <span className="text-xs font-semibold text-gray-500 bg-gray-200 px-2 py-1 rounded-full flex items-center gap-1 whitespace-nowrap"><Icon iconName="lock" className="h-3 w-3"/> Locked</span>;
     }
     return (
-        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+        <span className={`text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap ${
             totalCustomQuestions > 0 
             ? 'text-sky-700 bg-sky-100' 
             : 'text-gray-500 bg-gray-200'
         }`}>
-            {totalCustomQuestions} Question{totalCustomQuestions !== 1 ? 's' : ''}
+            {totalCustomQuestions} Qs
         </span>
     );
   };
@@ -308,7 +308,7 @@ const ModuleListItem: React.FC<ModuleListItemProps> = ({
   return (
     <div className={`bg-white rounded-xl shadow-sm border border-gray-200 transition-all duration-300 ${isAdmin && !isVisible ? 'opacity-50' : ''} ${isLocked && !isAdmin ? 'bg-gray-50 opacity-75 cursor-not-allowed' : 'hover:bg-gray-50 cursor-pointer'}`}>
       <div 
-        className="p-4 flex items-center justify-between"
+        className="p-3 sm:p-4 flex items-center justify-between"
         onClick={handleClick}
         aria-expanded={isExpanded}
         aria-controls={`module-content-${module.id}`}
@@ -316,9 +316,9 @@ const ModuleListItem: React.FC<ModuleListItemProps> = ({
         tabIndex={isLocked && !isAdmin ? -1 : 0}
         onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && (!isLocked || isAdmin)) setIsExpanded(!isExpanded); }}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
           {isAdmin && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-shrink-0">
               <button
                   onClick={(e) => {
                       e.stopPropagation();
@@ -352,26 +352,26 @@ const ModuleListItem: React.FC<ModuleListItemProps> = ({
               )}
             </div>
           )}
-          <div className={`p-3 rounded-lg ${isLocked && !isAdmin ? 'bg-gray-200 text-gray-400' : module.color}`}>
+          <div className={`p-2 sm:p-3 rounded-lg flex-shrink-0 ${isLocked && !isAdmin ? 'bg-gray-200 text-gray-400' : module.color}`}>
             <Icon iconName={isLocked && !isAdmin ? 'lock' : module.icon} />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h3 className={`font-bold ${isLocked && !isAdmin ? 'text-gray-500' : 'text-gray-900'}`}>{module.title}</h3>
+              <h3 className={`font-bold truncate ${isLocked && !isAdmin ? 'text-gray-500' : 'text-gray-900'}`}>{module.title}</h3>
               {isAdmin && (
                 <button
                   onClick={handleEditClick}
                   title="Edit module title"
-                  className="p-1 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-800"
+                  className="p-1 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-800 flex-shrink-0"
                 >
                   <Icon iconName="edit" className="h-4 w-4" />
                 </button>
               )}
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm text-gray-600">
-                 <span>{module.subTopics.length} sub-topics</span>
+                 <span className="whitespace-nowrap">{module.subTopics.length} sub-topics</span>
                  {isGenerating && generatingStatus && (
-                     <span className="text-xs text-indigo-600 font-medium animate-pulse hidden sm:inline-block">
+                     <span className="text-xs text-indigo-600 font-medium animate-pulse hidden sm:inline-block truncate">
                          — {generatingStatus}
                      </span>
                  )}
@@ -383,7 +383,7 @@ const ModuleListItem: React.FC<ModuleListItemProps> = ({
              )}
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0 ml-2">
           {getStatusBadge()}
           {(!isLocked || isAdmin) && (
             <Icon iconName="chevron-down" className={`h-5 w-5 text-gray-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
@@ -392,8 +392,8 @@ const ModuleListItem: React.FC<ModuleListItemProps> = ({
       </div>
       
       {isExpanded && (
-        <div id={`module-content-${module.id}`} className="px-4 pb-4 pt-0 border-t border-gray-200">
-          <h4 className="text-sm font-semibold text-gray-700 my-3 px-2">Sub-Topics Covered:</h4>
+        <div id={`module-content-${module.id}`} className="px-3 sm:px-4 pb-4 pt-0 border-t border-gray-200">
+          <h4 className="text-xs sm:text-sm font-semibold text-gray-700 my-3 px-2">Sub-Topics Covered:</h4>
            {visibleSubTopics.length > 0 ? (
             <ul className="space-y-1">
                 {visibleSubTopics.map((topic, index) => {
@@ -408,9 +408,6 @@ const ModuleListItem: React.FC<ModuleListItemProps> = ({
                     const subTopicOnlyQuestionCount = moduleQuestions[topic.title]?.length || 0;
                     const totalSubTopicQuestionCount = subTopicOnlyQuestionCount + Object.values(contentPointQuestionCounts).reduce((a, b) => a + b, 0);
                     
-                    // Logic for locked subtopic: 
-                    // If Admin: always unlocked. 
-                    // If User: Module must be unlocked (implied since we are expanded) AND subtopic key must be in unlocked list.
                     const isSubTopicLocked = !isAdmin && !unlockedSubTopics?.includes(`${module.id}-${topic.title}`);
 
                     return (

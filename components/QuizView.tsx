@@ -169,9 +169,9 @@ const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, que
   };
 
   return (
-    <div className="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
+    <div className="w-full max-w-2xl bg-white p-4 sm:p-8 rounded-2xl shadow-xl border border-gray-200">
       <div className="text-center mb-6">
-        <h2 className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">{quizTitle}</h2>
+        <h2 className="text-xs font-semibold text-indigo-600 uppercase tracking-wider truncate">{quizTitle}</h2>
         {mode === 'exam' && <span className="text-xs font-bold text-gray-400 ml-2 border border-gray-300 px-1.5 py-0.5 rounded">EXAM MODE</span>}
         <div className="w-full bg-gray-200 rounded-full h-2 my-3">
             <div className="bg-gradient-to-r from-pink-500 to-purple-600 h-2 rounded-full" style={{ width: `${progressPercentage}%`, transition: 'width 0.3s' }}></div>
@@ -179,23 +179,23 @@ const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, que
         <p className="text-sm text-gray-500">Question {currentQuestionIndex + 1} of {questions.length}</p>
       </div>
 
-      <h3 className="text-xl font-bold text-gray-800 my-8 text-center">{currentQuestion.question}</h3>
+      <h3 className="text-lg sm:text-xl font-bold text-gray-800 my-6 sm:my-8 text-center">{currentQuestion.question}</h3>
       
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {currentQuestion.options.map((option, index) => (
           <button
             key={index}
             onClick={() => handleOptionClick(option)}
             disabled={mode === 'study' && isAnswerRevealed}
-            className={`w-full text-left p-4 rounded-lg border-2 transition-all duration-200 ${getOptionClassName(option)}`}
+            className={`w-full text-left p-3 sm:p-4 rounded-lg border-2 transition-all duration-200 ${getOptionClassName(option)}`}
           >
              <div className="flex items-center justify-between">
-                <span>{option}</span>
+                <span className="text-sm sm:text-base">{option}</span>
                 {mode === 'study' && isAnswerRevealed && option === currentQuestion.correctAnswer && (
-                    <Icon iconName="shield-check" className="h-5 w-5 text-green-600" />
+                    <Icon iconName="shield-check" className="h-5 w-5 text-green-600 flex-shrink-0 ml-2" />
                 )}
                  {mode === 'study' && isAnswerRevealed && selectedAnswer === option && option !== currentQuestion.correctAnswer && (
-                    <Icon iconName="alert" className="h-5 w-5 text-red-600" />
+                    <Icon iconName="alert" className="h-5 w-5 text-red-600 flex-shrink-0 ml-2" />
                 )}
              </div>
           </button>
@@ -218,10 +218,10 @@ const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, que
           {currentQuestionIndex > 0 && (
              <button
                 onClick={handlePreviousQuestion}
-                className="w-1/3 py-3 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-sm flex items-center justify-center gap-2"
+                className="w-1/3 py-3 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-sm flex items-center justify-center gap-2 text-sm sm:text-base"
              >
                 <Icon iconName="chevron-down" className="h-4 w-4 rotate-90" />
-                <span>Previous</span>
+                <span className="hidden sm:inline">Previous</span>
              </button>
           )}
           
@@ -230,14 +230,14 @@ const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, que
                   <button
                     onClick={handleRevealAnswer}
                     disabled={!selectedAnswer}
-                    className="flex-1 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md"
+                    className="flex-1 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md text-sm sm:text-base"
                   >
                     Reveal Answer
                   </button>
               ) : (
                   <button
                     onClick={handleNextQuestion}
-                    className="flex-1 py-3 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition-colors shadow-md flex items-center justify-center gap-2"
+                    className="flex-1 py-3 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition-colors shadow-md flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     <span>{isLastQuestion ? 'Finish Exam' : 'Next Question'}</span>
                     {!isLastQuestion && <Icon iconName="chevron-down" className="h-4 w-4 rotate-270" />}
@@ -247,7 +247,7 @@ const QuizView: React.FC<QuizViewProps> = ({ module, subTopic, contentPoint, que
               <button
                 onClick={handleNextQuestion}
                 disabled={!selectedAnswer}
-                className="flex-1 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-md flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="flex-1 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-md flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm sm:text-base"
               >
                 <span>{isLastQuestion ? 'Finish Exam' : 'Next Question'}</span>
                 {!isLastQuestion && <Icon iconName="chevron-down" className="h-4 w-4 rotate-270" />}

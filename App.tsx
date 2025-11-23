@@ -15,10 +15,6 @@ import { generateQuestionsForModule } from './services/geminiService';
 import type { Module, QuestionBank, Question, Exam, SubTopic, QuizResult, QuizAttempt, DifficultyLevel, StudyResource } from './types';
 
 type View = 'dashboard' | 'quiz' | 'results' | 'progress' | 'home' | 'learning-hub';
-type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
-
-// Helper to generate unique key for subtopic locking
-const getSubTopicLockKey = (moduleId: number, subTopicTitle: string) => `${moduleId}-${subTopicTitle}`;
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('home');
@@ -40,72 +36,11 @@ const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoginModalOpen, setLoginModalOpen] = useState(false);
   const [isQuestionManagerOpen, setQuestionManagerOpen] = useState(false);
-  
-  // Initialize QuestionBank from localStorage OR from INITIAL_QUESTION_BANK (constants.ts)
-  const [questionBank, setQuestionBank] = useState<QuestionBank>(() => {
-      try {
-          const savedBank = localStorage.getItem('questionBank');
-          if (savedBank) {
-              return JSON.parse(savedBank);
-          }
-          return INITIAL_QUESTION_BANK;
-      } catch {
-          return INITIAL_QUESTION_BANK;
-      }
-  });
-
+  const [questionBank, setQuestionBank] = useState<QuestionBank>({});
   const [moduleVisibility, setModuleVisibility] = useState<{ [moduleId: number]: boolean }>({});
   const [subTopicVisibility, setSubTopicVisibility] = useState<{ [moduleId: number]: { [subTopic: string]: boolean } }>({});
   const [contentPointVisibility, setContentPointVisibility] = useState<{ [moduleId: number]: { [subTopic: string]: { [contentPoint: string]: boolean } } }>({});
-  
-  // Initialize Exams from localStorage OR from INITIAL_EXAM_DATA (constants.ts)
-  const [exams, setExams] = useState<Exam[]>(() => {
-      try {
-          const savedExams = localStorage.getItem('exams');
-          return savedExams ? JSON.parse(savedExams) : INITIAL_EXAM_DATA;
-      } catch {
-          return INITIAL_EXAM_DATA;
-      }
-  });
-  
-  // Sync Status
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
-
-  // REFS: Keep track of latest state to avoid stale closures in async operations
-  const examsRef = useRef(exams);
-  const questionBankRef = useRef(questionBank);
-  const moduleVisibilityRef = useRef(moduleVisibility);
-  const subTopicVisibilityRef = useRef(subTopicVisibility);
-  const contentPointVisibilityRef = useRef(contentPointVisibility);
-
-  // Update refs whenever state changes
-  useEffect(() => { examsRef.current = exams; }, [exams]);
-  useEffect(() => { questionBankRef.current = questionBank; }, [questionBank]);
-  useEffect(() => { moduleVisibilityRef.current = moduleVisibility; }, [moduleVisibility]);
-  useEffect(() => { subTopicVisibilityRef.current = subTopicVisibility; }, [subTopicVisibility]);
-  useEffect(() => { contentPointVisibilityRef.current = contentPointVisibility; }, [contentPointVisibility]);
-
-  // Progression Locking State - Lazy Initialization from LocalStorage
-  const [unlockedModules, setUnlockedModules] = useState<number[]>(() => {
-    try {
-      const saved = localStorage.getItem('unlockedModules');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      console.error("Error loading unlockedModules", e);
-      return [];
-    }
-  });
-
-  const [unlockedSubTopics, setUnlockedSubTopics] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('unlockedSubTopics');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      console.error("Error loading unlockedSubTopics", e);
-      return [];
-    }
-  });
-
+  const [exams, setExams] = useState<Exam[]>([]);
   const [quizSettings, setQuizSettings] = useState<{
     isOpen: boolean;
     module: Module | null;
@@ -117,46 +52,53 @@ const App: React.FC = () => {
   const [generatingModuleId, setGeneratingModuleId] = useState<number | null>(null);
   const [generatingStatus, setGeneratingStatus] = useState<string>("");
 
-  // Persistence Effects for Locking State
+  // Locking State
+  const [unlockedModules, setUnlockedModules] = useState<number[]>([]);
+  const [unlockedSubTopics, setUnlockedSubTopics] = useState<string[]>([]);
+
+  // Sync State
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
+
+  // Refs for state access in async operations
+  const questionBankRef = useRef(questionBank);
+  const examsRef = useRef(exams);
+
+  // Keep refs in sync
   useEffect(() => {
-    localStorage.setItem('unlockedModules', JSON.stringify(unlockedModules));
-  }, [unlockedModules]);
+      questionBankRef.current = questionBank;
+  }, [questionBank]);
 
   useEffect(() => {
-    localStorage.setItem('unlockedSubTopics', JSON.stringify(unlockedSubTopics));
-  }, [unlockedSubTopics]);
+      examsRef.current = exams;
+  }, [exams]);
 
-  // Effect to set default unlocked content if everything is locked
-  // ENSURES FIRST MODULE OF *EVERY* EXAM IS UNLOCKED
+  // Helper to generate unique key for sub-topic locking
+  const getSubTopicLockKey = (moduleId: number, subTopicTitle: string) => `${moduleId}-${subTopicTitle}`;
+
+  // Initialize Data
   useEffect(() => {
-    if (exams.length > 0) {
-        const neededModules: number[] = [];
-        const neededSubTopics: string[] = [];
-
-        exams.forEach(exam => {
-             if (exam.modules.length > 0) {
-                 const firstMod = exam.modules[0];
-                 neededModules.push(firstMod.id);
-                 
-                 if (firstMod.subTopics.length > 0) {
-                     const firstSub = firstMod.subTopics[0];
-                     neededSubTopics.push(getSubTopicLockKey(firstMod.id, firstSub.title));
-                 }
-             }
-        });
-
-        const missingModules = neededModules.filter(id => !unlockedModules.includes(id));
-        const missingSubTopics = neededSubTopics.filter(key => !unlockedSubTopics.includes(key));
-
-        if (missingModules.length > 0 || missingSubTopics.length > 0) {
-            setUnlockedModules(prev => [...prev, ...missingModules]);
-            setUnlockedSubTopics(prev => [...prev, ...missingSubTopics]);
-        }
+    // Load Exams
+    try {
+        const savedExams = localStorage.getItem('exams');
+        setExams(savedExams ? JSON.parse(savedExams) : INITIAL_EXAM_DATA);
+    } catch(e) {
+        console.error("Failed to load exams from local storage", e);
+        setExams(INITIAL_EXAM_DATA);
     }
-  }, [exams, unlockedModules, unlockedSubTopics]);
+    
+    // Load Question Bank
+    try {
+      const savedBank = localStorage.getItem('questionBank');
+      if (savedBank) {
+        setQuestionBank(JSON.parse(savedBank));
+      } else {
+        setQuestionBank(INITIAL_QUESTION_BANK);
+      }
+    } catch (error) {
+      console.error("Failed to load question bank from local storage:", error);
+      setQuestionBank(INITIAL_QUESTION_BANK);
+    }
 
-  // Load other data from local storage on initial render
-  useEffect(() => {
     // Load Quiz History
     try {
       const savedHistory = localStorage.getItem('quizHistory');
@@ -177,7 +119,7 @@ const App: React.FC = () => {
         console.error("Failed to load study resources", error);
     }
 
-    const allModules = exams.flatMap(e => e.modules);
+    const allModules = INITIAL_EXAM_DATA.flatMap(e => e.modules);
 
     // Load Module Visibility
     try {
@@ -194,9 +136,7 @@ const App: React.FC = () => {
             setModuleVisibility(initialVisibility);
         }
     } catch (error) {
-        console.error("Failed to load module visibility settings:", error);
-        const defaultVisibility = allModules.reduce((acc, module) => ({ ...acc, [module.id]: true }), {});
-        setModuleVisibility(defaultVisibility);
+        setModuleVisibility(allModules.reduce((acc, module) => ({ ...acc, [module.id]: true }), {}));
     }
     
     // Load Sub-Topic Visibility
@@ -204,7 +144,7 @@ const App: React.FC = () => {
         const savedSubTopicVisibility = localStorage.getItem('subTopicVisibility');
         const initialSubTopicVisibility = allModules.reduce((acc, module) => {
             acc[module.id] = module.subTopics.reduce((subAcc, topic) => {
-                subAcc[topic.title] = true; // Default all to visible
+                subAcc[topic.title] = true;
                 return subAcc;
             }, {} as { [subTopic: string]: boolean });
             return acc;
@@ -212,7 +152,6 @@ const App: React.FC = () => {
         
         if (savedSubTopicVisibility) {
             const parsed = JSON.parse(savedSubTopicVisibility);
-            // Deep merge to handle new subtopics gracefully
             Object.keys(initialSubTopicVisibility).forEach(modId => {
                 const modIdNum = parseInt(modId, 10);
                 if (parsed[modIdNum]) {
@@ -225,8 +164,6 @@ const App: React.FC = () => {
         }
 
     } catch (error) {
-         console.error("Failed to load sub-topic visibility settings:", error);
-         // Initialize with defaults on error
          const defaultVisibility = allModules.reduce((acc, module) => {
             acc[module.id] = module.subTopics.reduce((subAcc, topic) => ({ ...subAcc, [topic.title]: true }), {});
             return acc;
@@ -240,7 +177,7 @@ const App: React.FC = () => {
         const initialContentPointVisibility = allModules.reduce((acc, module) => {
             acc[module.id] = module.subTopics.reduce((subAcc, topic) => {
                 subAcc[topic.title] = topic.content.reduce((contentAcc, point) => {
-                    contentAcc[point] = true; // Default all to visible
+                    contentAcc[point] = true;
                     return contentAcc;
                 }, {} as { [contentPoint: string]: boolean });
                 return subAcc;
@@ -250,7 +187,6 @@ const App: React.FC = () => {
 
         if (savedContentPointVisibility) {
             const parsed = JSON.parse(savedContentPointVisibility);
-            // Deep merge to handle new content points gracefully
             Object.keys(initialContentPointVisibility).forEach(modIdStr => {
                 const modId = parseInt(modIdStr, 10);
                 if (parsed[modId]) {
@@ -266,7 +202,6 @@ const App: React.FC = () => {
             setContentPointVisibility(initialContentPointVisibility);
         }
     } catch (error) {
-        console.error("Failed to load content point visibility settings:", error);
         const defaultVisibility = allModules.reduce((acc, module) => {
             acc[module.id] = module.subTopics.reduce((subAcc, topic) => {
                 subAcc[topic.title] = topic.content.reduce((contentAcc, point) => ({ ...contentAcc, [point]: true }), {});
@@ -277,193 +212,58 @@ const App: React.FC = () => {
         setContentPointVisibility(defaultVisibility);
     }
 
-  }, []); // Run once on mount
+    // Load Unlocked State
+    try {
+        const savedUnlockedModules = localStorage.getItem('unlockedModules');
+        if (savedUnlockedModules) {
+            setUnlockedModules(JSON.parse(savedUnlockedModules));
+        } else {
+             // Unlock first module of EACH exam by default
+            const initialUnlockedModules = INITIAL_EXAM_DATA.map(exam => exam.modules[0].id);
+            setUnlockedModules(initialUnlockedModules);
+        }
 
+        const savedUnlockedSubTopics = localStorage.getItem('unlockedSubTopics');
+        if (savedUnlockedSubTopics) {
+            setUnlockedSubTopics(JSON.parse(savedUnlockedSubTopics));
+        } else {
+            // Unlock first subtopic of first module of EACH exam
+             const initialUnlockedSubTopics = INITIAL_EXAM_DATA.map(exam => {
+                 const firstMod = exam.modules[0];
+                 if (firstMod && firstMod.subTopics.length > 0) {
+                     return getSubTopicLockKey(firstMod.id, firstMod.subTopics[0].title);
+                 }
+                 return null;
+             }).filter((key): key is string => key !== null);
+             
+             setUnlockedSubTopics(initialUnlockedSubTopics);
+        }
+    } catch (error) {
+        console.error("Failed to load lock state", error);
+    }
 
-  const updateQuestionBank = useCallback((newBank: QuestionBank) => {
-    setQuestionBank(newBank);
-    localStorage.setItem('questionBank', JSON.stringify(newBank));
   }, []);
 
-
-  // --- CENTRALIZED DATA IMPORT LOGIC ---
-  // Now uses REFS to ensure it always works with the latest data, even inside async/useEffect callbacks
-  const processImportedData = useCallback((importedData: any) => {
-      try {
-        // Use Refs to get latest state
-        const currentExams = examsRef.current;
-        const currentBank = questionBankRef.current;
-        const currentModuleVis = moduleVisibilityRef.current;
-        const currentSubTopicVis = subTopicVisibilityRef.current;
-        const currentContentPointVis = contentPointVisibilityRef.current;
-
-        // Deep copy current state to mutate
-        const updatedExams = JSON.parse(JSON.stringify(currentExams));
-        const updatedBank = { ...currentBank };
-        let modulesAdded = 0;
-        let subTopicsAdded = 0;
-        
-        // Visibility updates
-        let newModuleVis = { ...currentModuleVis };
-        let newSubTopicVis = JSON.parse(JSON.stringify(currentSubTopicVis));
-        let newContentPointVis = JSON.parse(JSON.stringify(currentContentPointVis));
-
-        const allModules = updatedExams.flatMap((e: Exam) => e.modules);
-        let maxModuleId = allModules.reduce((max: number, m: Module) => Math.max(max, m.id), 0);
-
-        Object.entries(importedData).forEach(([key, topics]) => {
-            // key is Module Title (or legacy ID)
-            
-            let targetModule: Module | undefined;
-
-            // 1. Try match by Title
-            targetModule = updatedExams.flatMap((e: Exam) => e.modules).find((m: Module) => m.title === key);
-
-            // 2. Try match by Legacy ID
-            if (!targetModule && /^\d+$/.test(key)) {
-                const id = parseInt(key, 10);
-                targetModule = updatedExams.flatMap((e: Exam) => e.modules).find((m: Module) => m.id === id);
-            }
-
-            // 3. If not found, create new module (Only if we have a valid exam structure loaded)
-            if (!targetModule && updatedExams.length > 0) {
-                 // Default to first exam
-                 const activeExamIndex = 0;
-                 
-                 maxModuleId++;
-                 const newModule: Module = {
-                     id: maxModuleId,
-                     title: key.startsWith('ID:') ? `Imported Module ${maxModuleId}` : key,
-                     icon: 'folder', // Default icon
-                     color: 'bg-gray-100 text-gray-600',
-                     subTopics: []
-                 };
-                 updatedExams[activeExamIndex].modules.push(newModule);
-                 targetModule = newModule;
-                 modulesAdded++;
-                 
-                 // Init visibility
-                 newModuleVis[newModule.id] = true;
-                 newSubTopicVis[newModule.id] = {};
-                 newContentPointVis[newModule.id] = {};
-            }
-
-            if (targetModule) {
-                // Merge Questions
-                updatedBank[targetModule.id] = { ...(updatedBank[targetModule.id] || {}), ...(topics as any) };
-
-                // Sync Structure (SubTopics & Content Points)
-                const importedTopics = topics as Record<string, any>;
-                Object.keys(importedTopics).forEach(topicKey => {
-                    const [subTopicTitle, contentPointTitle] = topicKey.split('::');
-                    
-                    // Ensure SubTopic exists
-                    let subTopic = targetModule!.subTopics.find(st => st.title === subTopicTitle);
-                    if (!subTopic) {
-                        subTopic = { title: subTopicTitle, content: [] };
-                        targetModule!.subTopics.push(subTopic);
-                        subTopicsAdded++;
-                        
-                        // Init visibility
-                        if (!newSubTopicVis[targetModule!.id]) newSubTopicVis[targetModule!.id] = {};
-                        newSubTopicVis[targetModule!.id][subTopicTitle] = true;
-                    }
-
-                    // Ensure Content Point exists (if applicable)
-                    if (contentPointTitle) {
-                        if (!subTopic.content.includes(contentPointTitle)) {
-                            subTopic.content.push(contentPointTitle);
-                            
-                            // Init visibility
-                            if (!newContentPointVis[targetModule!.id]) newContentPointVis[targetModule!.id] = {};
-                            if (!newContentPointVis[targetModule!.id][subTopicTitle]) newContentPointVis[targetModule!.id][subTopicTitle] = {};
-                            newContentPointVis[targetModule!.id][subTopicTitle][contentPointTitle] = true;
-                        }
-                    }
-                });
-            }
-        });
-
-        // Commit updates
-        setExams(updatedExams);
-        updateQuestionBank(updatedBank);
-        
-        setModuleVisibility(newModuleVis);
-        localStorage.setItem('moduleVisibility', JSON.stringify(newModuleVis));
-        
-        setSubTopicVisibility(newSubTopicVis);
-        localStorage.setItem('subTopicVisibility', JSON.stringify(newSubTopicVis));
-        
-        setContentPointVisibility(newContentPointVis);
-        localStorage.setItem('contentPointVisibility', JSON.stringify(newContentPointVis));
-        
-        return { modulesAdded, subTopicsAdded };
-
-      } catch (error) {
-        console.error("Process Data Error", error);
-        throw error;
-      }
-  }, [updateQuestionBank]);
-
-  // --- AUTO-FETCH DATA.JSON ON LOAD ---
-  const syncDataFromServer = useCallback(async () => {
-      // Don't sync if no exams loaded yet
-      if (examsRef.current.length === 0) return;
-      
-      setSyncStatus('syncing');
-      try {
-          // Add timestamp to bypass browser cache
-          const response = await fetch(`data.json?t=${new Date().getTime()}`, {
-               cache: 'no-store',
-               headers: {
-                   'Pragma': 'no-cache',
-                   'Cache-Control': 'no-cache'
-               }
-          });
-          
-          if (response.ok) {
-              const jsonData = await response.json();
-              console.log("Found data.json, attempting auto-import...");
-              processImportedData(jsonData);
-              setSyncStatus('synced');
-              console.log("Auto-import completed.");
-          } else {
-              // Silent fail expected if file doesn't exist
-              console.debug("No external data.json found.");
-              setSyncStatus('idle');
-          }
-      } catch (error) {
-          console.error("Sync failed", error);
-          setSyncStatus('error');
-      }
-  }, [processImportedData]);
-
-  // Run sync once on mount (with a slight delay to ensure localStorage load finishes)
+  // Persistence Effects
   useEffect(() => {
-      const timer = setTimeout(() => {
-          syncDataFromServer();
-      }, 1000);
-      return () => clearTimeout(timer);
-  }, []); // Run once
-
-  // Effect to save exams to local storage whenever they change
-  useEffect(() => {
-    if (exams.length > 0) {
-        localStorage.setItem('exams', JSON.stringify(exams));
-    }
+    if (exams.length > 0) localStorage.setItem('exams', JSON.stringify(exams));
   }, [exams]);
 
-  // Effect to save quiz history to local storage whenever it changes
   useEffect(() => {
     localStorage.setItem('quizHistory', JSON.stringify(quizHistory));
   }, [quizHistory]);
   
-  // Effect to save resources
   useEffect(() => {
-      if (studyResources.length > 0) {
-          localStorage.setItem('studyResources', JSON.stringify(studyResources));
-      }
+      if (studyResources.length > 0) localStorage.setItem('studyResources', JSON.stringify(studyResources));
   }, [studyResources]);
+
+  useEffect(() => {
+      if (unlockedModules.length > 0) localStorage.setItem('unlockedModules', JSON.stringify(unlockedModules));
+  }, [unlockedModules]);
+
+  useEffect(() => {
+      if (unlockedSubTopics.length > 0) localStorage.setItem('unlockedSubTopics', JSON.stringify(unlockedSubTopics));
+  }, [unlockedSubTopics]);
 
   const getTopicIdentifier = (subTopic: string, contentPoint?: string | null) => {
     return contentPoint ? `${subTopic}::${contentPoint}` : subTopic;
@@ -490,33 +290,30 @@ const App: React.FC = () => {
   const handleStartQuiz = useCallback((config: QuizStartConfig) => {
     if (!quizSettings.module || !quizSettings.subTopic) return;
     
-    const { count, mode, shuffle, startIndex } = config;
     const { module, subTopic, contentPoint } = quizSettings;
     const topicIdentifier = getTopicIdentifier(subTopic, contentPoint);
     const allQuestions = questionBank[module.id]?.[topicIdentifier] || [];
 
     let selectedQuestions: Question[] = [];
 
-    if (startIndex !== undefined) {
-        // Daily / Sequential Mode: Select specific slice WITHOUT shuffling
-        // Ensure we don't go out of bounds
-        const end = Math.min(startIndex + count, allQuestions.length);
-        selectedQuestions = allQuestions.slice(startIndex, end);
+    if (config.mode === 'exam') {
+        // Exam Mode: Take ALL questions
+        selectedQuestions = [...allQuestions].sort(() => 0.5 - Math.random());
+    } else if (config.startIndex !== undefined) {
+        // Daily / Sequential Mode
+        const end = Math.min(config.startIndex + config.count, allQuestions.length);
+        selectedQuestions = allQuestions.slice(config.startIndex, end);
     } else {
-        // Random Mode
-        if (shuffle) {
-             const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
-             selectedQuestions = shuffled.slice(0, count);
-        } else {
-             selectedQuestions = allQuestions.slice(0, count);
-        }
+        // Random Study Mode
+        const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
+        selectedQuestions = shuffled.slice(0, config.count);
     }
 
     setActiveModule(module);
     setActiveSubTopic(subTopic);
     setActiveContentPoint(contentPoint);
     setActiveQuizQuestions(selectedQuestions);
-    setActiveQuizMode(mode);
+    setActiveQuizMode(config.mode);
     setCurrentView('quiz');
     setQuizSettings({ isOpen: false, module: null, subTopic: null, contentPoint: null, availableQuestions: 0 });
   }, [questionBank, quizSettings]);
@@ -534,63 +331,121 @@ const App: React.FC = () => {
       };
       setQuizHistory(prev => [attempt, ...prev]);
 
-      // --- UNLOCKING LOGIC ---
-      if (
-          activeQuizMode === 'exam' && 
-          result.score >= 80 && 
-          activeModule && 
-          activeSubTopic && 
-          !activeContentPoint
-      ) {
-         // Find current hierarchy
-         const currentExam = exams.find(e => e.modules.some(m => m.id === activeModule.id));
-         if (currentExam) {
-            const modIndex = currentExam.modules.findIndex(m => m.id === activeModule.id);
-            const subIndex = activeModule.subTopics.findIndex(st => st.title === activeSubTopic);
+      // Progression Logic
+      if (activeQuizMode === 'exam' && result.score >= 80) {
+          const currentExam = exams.find(e => e.modules.some(m => m.id === activeModule.id));
+          if (currentExam && activeSubTopic) {
+              const currentModuleIndex = currentExam.modules.findIndex(m => m.id === activeModule.id);
+              const currentSubTopicIndex = activeModule.subTopics.findIndex(st => st.title === activeSubTopic);
 
-            if (modIndex !== -1 && subIndex !== -1) {
-                // 1. Is there a next Sub-Topic in THIS module?
-                if (subIndex < activeModule.subTopics.length - 1) {
-                    const nextSubTopic = activeModule.subTopics[subIndex + 1];
-                    const key = getSubTopicLockKey(activeModule.id, nextSubTopic.title);
-                    
-                    if (!unlockedSubTopics.includes(key)) {
-                        const newUnlockedSubs = [...unlockedSubTopics, key];
-                        setUnlockedSubTopics(newUnlockedSubs);
-                    }
-                } 
-                // 2. No next sub-topic, is there a next Module?
-                else if (modIndex < currentExam.modules.length - 1) {
-                    const nextModule = currentExam.modules[modIndex + 1];
-                    
-                    let updatedModules = unlockedModules;
-                    let updatedSubs = unlockedSubTopics;
-                    let changed = false;
-
-                    // Unlock Module
-                    if (!unlockedModules.includes(nextModule.id)) {
-                        updatedModules = [...unlockedModules, nextModule.id];
-                        setUnlockedModules(updatedModules);
-                        changed = true;
-                    }
-
-                    // Unlock First Sub-Topic of Next Module
-                    if (nextModule.subTopics.length > 0) {
-                        const nextSubKey = getSubTopicLockKey(nextModule.id, nextModule.subTopics[0].title);
-                        if (!unlockedSubTopics.includes(nextSubKey)) {
-                             updatedSubs = [...updatedSubs, nextSubKey];
-                             setUnlockedSubTopics(updatedSubs);
-                             changed = true;
-                        }
-                    }
-                }
-            }
-         }
+              if (currentModuleIndex !== -1 && currentSubTopicIndex !== -1) {
+                  // Check if there's a next sub-topic
+                  if (currentSubTopicIndex < activeModule.subTopics.length - 1) {
+                      const nextSubTopic = activeModule.subTopics[currentSubTopicIndex + 1];
+                      const lockKey = getSubTopicLockKey(activeModule.id, nextSubTopic.title);
+                      if (!unlockedSubTopics.includes(lockKey)) {
+                          setUnlockedSubTopics(prev => [...prev, lockKey]);
+                          alert(`🎉 Congratulations! You've unlocked the next topic: ${nextSubTopic.title}`);
+                      }
+                  } 
+                  // If last sub-topic, check for next module
+                  else if (currentModuleIndex < currentExam.modules.length - 1) {
+                      const nextModule = currentExam.modules[currentModuleIndex + 1];
+                      if (!unlockedModules.includes(nextModule.id)) {
+                          setUnlockedModules(prev => [...prev, nextModule.id]);
+                          // Also unlock first subtopic of next module
+                          if (nextModule.subTopics.length > 0) {
+                              const lockKey = getSubTopicLockKey(nextModule.id, nextModule.subTopics[0].title);
+                              setUnlockedSubTopics(prev => [...prev, lockKey]);
+                          }
+                          alert(`🏆 Module Completed! You've unlocked the next module: ${nextModule.title}`);
+                      }
+                  }
+              }
+          }
       }
     }
     setLastQuizResult(result);
     setCurrentView('results');
-  }, [activeModule, activeSubTopic, activeContentPoint, exams, unlockedModules, unlockedSubTopics, activeQuizMode]);
+  }, [activeModule, activeSubTopic, activeContentPoint, exams, activeQuizMode, unlockedModules, unlockedSubTopics]);
+
+  const handleUnlockAllContent = useCallback((code: string) => {
+      const normalizedCode = code.trim().toLowerCase();
+      
+      // Global Unlock
+      if (normalizedCode === 'dqadm' || normalizedCode === 'adm') {
+          const allModuleIds = exams.flatMap(e => e.modules.map(m => m.id));
+          
+          // If already unlocked, reset to locked state (keep first modules)
+          const isFullyUnlocked = allModuleIds.every(id => unlockedModules.includes(id));
+          
+          if (isFullyUnlocked) {
+              const firstModuleIds = exams.map(e => e.modules[0]?.id).filter(id => id !== undefined);
+              const firstSubTopicKeys = exams.map(e => {
+                  const mod = e.modules[0];
+                  return mod && mod.subTopics.length > 0 ? getSubTopicLockKey(mod.id, mod.subTopics[0].title) : null;
+              }).filter((k): k is string => k !== null);
+              
+              setUnlockedModules(firstModuleIds);
+              setUnlockedSubTopics(firstSubTopicKeys);
+              alert("Content locked. Progress reset to default.");
+          } else {
+              // Unlock Everything
+              setUnlockedModules(allModuleIds);
+              const allSubTopicKeys = exams.flatMap(e => e.modules.flatMap(m => m.subTopics.map(st => getSubTopicLockKey(m.id, st.title))));
+              setUnlockedSubTopics(allSubTopicKeys);
+              alert("🔓 All content unlocked!");
+          }
+          return;
+      }
+
+      // Folder or Module Unlock
+      let unlockedCount = 0;
+      let newUnlockedModules = [...unlockedModules];
+      let newUnlockedSubTopics = [...unlockedSubTopics];
+
+      exams.forEach(exam => {
+          // Check Exam Title (Folder)
+          if (exam.title.toLowerCase() === normalizedCode) {
+              exam.modules.forEach(m => {
+                  if (!newUnlockedModules.includes(m.id)) {
+                      newUnlockedModules.push(m.id);
+                      unlockedCount++;
+                  }
+                  m.subTopics.forEach(st => {
+                      const key = getSubTopicLockKey(m.id, st.title);
+                      if (!newUnlockedSubTopics.includes(key)) newUnlockedSubTopics.push(key);
+                  });
+              });
+          } else {
+              // Check Module Titles
+              exam.modules.forEach(m => {
+                  if (m.title.toLowerCase() === normalizedCode) {
+                       if (!newUnlockedModules.includes(m.id)) {
+                          newUnlockedModules.push(m.id);
+                          unlockedCount++;
+                      }
+                      m.subTopics.forEach(st => {
+                          const key = getSubTopicLockKey(m.id, st.title);
+                          if (!newUnlockedSubTopics.includes(key)) newUnlockedSubTopics.push(key);
+                      });
+                  }
+              });
+          }
+      });
+
+      if (unlockedCount > 0) {
+          setUnlockedModules(newUnlockedModules);
+          setUnlockedSubTopics(newUnlockedSubTopics);
+          alert(`🔓 Unlocked content matching "${code}"`);
+      } else {
+          // Only alert failure if not one of the global codes
+          if (normalizedCode !== 'dqadm' && normalizedCode !== 'adm') {
+             // Optional: feedback for invalid code
+          }
+      }
+
+  }, [exams, unlockedModules, unlockedSubTopics]);
 
   const handleReturnToDashboard = useCallback(() => {
     setActiveModule(null);
@@ -632,6 +487,11 @@ const App: React.FC = () => {
     setActiveSubTopic(subTopic);
     setActiveContentPoint(contentPoint || null);
     setQuestionManagerOpen(true);
+  }, []);
+
+  const updateQuestionBank = useCallback((newBank: QuestionBank) => {
+    setQuestionBank(newBank);
+    localStorage.setItem('questionBank', JSON.stringify(newBank));
   }, []);
 
   const handleToggleModuleVisibility = useCallback((moduleId: number) => {
@@ -941,44 +801,28 @@ const App: React.FC = () => {
     }, []);
 
   const handleExportQuestions = useCallback(() => {
-    // Transform ID-based bank to Title-based bank for portability
+    // Ensure we export based on current structure, including empty modules if any
     const titleBasedBank: Record<string, any> = {};
-    exams.forEach(exam => {
-        exam.modules.forEach(module => {
-            const moduleQuestions: Record<string, Question[]> = {};
-            if (questionBank[module.id]) {
-                Object.entries(questionBank[module.id]).forEach(([key, val]) => {
-                    moduleQuestions[key] = val;
-                });
-            }
-            // Ensure SubTopics are present
-            module.subTopics.forEach(st => {
-                if (!moduleQuestions[st.title]) moduleQuestions[st.title] = [];
-                st.content.forEach(cp => {
-                    const cpKey = `${st.title}::${cp}`;
-                    if (!moduleQuestions[cpKey]) moduleQuestions[cpKey] = [];
-                });
-            });
-            if (titleBasedBank[module.title]) {
-                 titleBasedBank[module.title] = { ...titleBasedBank[module.title], ...moduleQuestions };
-            } else {
-                 titleBasedBank[module.title] = moduleQuestions;
-            }
+    const allModules = examsRef.current.flatMap(e => e.modules);
+    const currentBank = questionBankRef.current;
+    
+    allModules.forEach(module => {
+        const moduleQuestions = currentBank[module.id] || {};
+        titleBasedBank[module.title] = moduleQuestions;
+        
+        // Ensure subtopics are represented even if empty
+        module.subTopics.forEach(st => {
+             if (!titleBasedBank[module.title][st.title]) {
+                 titleBasedBank[module.title][st.title] = [];
+             }
+             st.content.forEach(cp => {
+                 const cpKey = `${st.title}::${cp}`;
+                 if (!titleBasedBank[module.title][cpKey]) {
+                     titleBasedBank[module.title][cpKey] = [];
+                 }
+             });
         });
     });
-    
-    const allModuleIds = new Set(exams.flatMap(e => e.modules.map(m => m.id)));
-    Object.entries(questionBank).forEach(([moduleIdStr, topics]) => {
-        const moduleId = parseInt(moduleIdStr);
-        if (!allModuleIds.has(moduleId)) {
-            titleBasedBank[`ID:${moduleId}`] = topics; 
-        }
-    });
-
-    if (Object.keys(titleBasedBank).length === 0) {
-        alert("No data to export.");
-        return;
-    }
 
     const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
       JSON.stringify(titleBasedBank, null, 2)
@@ -987,37 +831,127 @@ const App: React.FC = () => {
     link.href = jsonString;
     link.download = "cyber-security-question-bank.json";
     link.click();
-  }, [questionBank, exams]);
+  }, []); // Refs are stable
 
-  // --- EXPORT AS SOURCE CODE ---
-  // Generates a downloadable 'constants.ts' file containing all current state
-  const handleExportAsConstantsFile = useCallback(() => {
-     const jsonExams = JSON.stringify(exams, null, 4);
-     const jsonBank = JSON.stringify(questionBank, null, 4);
-     
-     const fileContent = `
-import type { Module, Exam, QuestionBank } from './types';
+  const processImportedData = useCallback((importedData: any) => {
+    if (typeof importedData !== 'object' || importedData === null || Array.isArray(importedData)) {
+         throw new Error("Invalid JSON format.");
+    }
 
-// This file was auto-generated by the Admin 'Export as Source Code' feature.
-// It contains the complete snapshot of your Exams, Modules, and Question Bank.
+    // Use refs to get latest state
+    const currentExams = examsRef.current;
+    const currentBank = questionBankRef.current;
 
-export const INITIAL_EXAM_DATA: Exam[] = ${jsonExams};
+    const updatedExams = JSON.parse(JSON.stringify(currentExams));
+    const updatedBank = { ...currentBank };
+    
+    let modulesAdded = 0;
+    let subTopicsAdded = 0;
+    
+    // Visibility updates
+    let newModuleVis = JSON.parse(localStorage.getItem('moduleVisibility') || '{}');
+    let newSubTopicVis = JSON.parse(localStorage.getItem('subTopicVisibility') || '{}');
+    let newContentPointVis = JSON.parse(localStorage.getItem('contentPointVisibility') || '{}');
 
-export const INITIAL_QUESTION_BANK: QuestionBank = ${jsonBank};
-     `.trim();
+    const allModules = updatedExams.flatMap((e: Exam) => e.modules);
+    let maxModuleId = allModules.reduce((max: number, m: Module) => Math.max(max, m.id), 0);
 
-    const blob = new Blob([fileContent], { type: 'text/typescript' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'constants.ts';
-    link.click();
-    URL.revokeObjectURL(url);
+    Object.entries(importedData).forEach(([key, topics]) => {
+        // key is Module Title (or legacy ID)
+        
+        let targetModule: Module | undefined;
 
-    alert("Download started: constants.ts\n\nPlease replace the existing 'constants.ts' file in your source code folder with this new file to make your changes permanent.");
+        // 1. Try match by Title
+        targetModule = updatedExams.flatMap((e: Exam) => e.modules).find((m: Module) => m.title === key);
 
-  }, [exams, questionBank]);
+        // 2. Try match by Legacy ID
+        if (!targetModule && /^\d+$/.test(key)) {
+            const id = parseInt(key, 10);
+            targetModule = updatedExams.flatMap((e: Exam) => e.modules).find((m: Module) => m.id === id);
+        }
 
+        // 3. Create new module if not found (Default to first exam or active exam)
+        if (!targetModule) {
+             // Default to the first exam if we don't have an active one context here easily, 
+             // or if we want to import generally.
+             // For now, let's put unknown modules in the first exam available or create a new "Imported" exam?
+             // Better to put in the currently active exam if possible, but this function might run from global context.
+             // Let's assume we add to the first exam for simplicity or find a generic one.
+             let targetExam = updatedExams[0]; 
+             if (!targetExam) {
+                 // Should not happen if initialized correctly
+                 targetExam = { id: 1, title: "Imported Exams", description: "Imported", modules: [] };
+                 updatedExams.push(targetExam);
+             }
+
+             maxModuleId++;
+             const newModule: Module = {
+                 id: maxModuleId,
+                 title: key.startsWith('ID:') ? `Imported Module ${maxModuleId}` : key,
+                 icon: 'folder', 
+                 color: 'bg-gray-100 text-gray-600',
+                 subTopics: []
+             };
+             targetExam.modules.push(newModule);
+             targetModule = newModule;
+             modulesAdded++;
+             
+             newModuleVis[newModule.id] = true;
+             newSubTopicVis[newModule.id] = {};
+             newContentPointVis[newModule.id] = {};
+        }
+
+        if (targetModule) {
+            // Merge Questions
+            const existingQs = updatedBank[targetModule.id] || {};
+            const importedQs = topics as any;
+            
+            // Smart merge: only add questions if they don't exist (by ID check if possible, or simplistic merge)
+            // For now, simple overwrite/merge
+            updatedBank[targetModule.id] = { ...existingQs, ...importedQs };
+
+            // Sync Structure
+            const importedTopics = topics as Record<string, any>;
+            Object.keys(importedTopics).forEach(topicKey => {
+                const [subTopicTitle, contentPointTitle] = topicKey.split('::');
+                
+                let subTopic = targetModule!.subTopics.find(st => st.title === subTopicTitle);
+                if (!subTopic) {
+                    subTopic = { title: subTopicTitle, content: [] };
+                    targetModule!.subTopics.push(subTopic);
+                    subTopicsAdded++;
+                    
+                    if (!newSubTopicVis[targetModule!.id]) newSubTopicVis[targetModule!.id] = {};
+                    newSubTopicVis[targetModule!.id][subTopicTitle] = true;
+                }
+
+                if (contentPointTitle) {
+                    if (!subTopic.content.includes(contentPointTitle)) {
+                        subTopic.content.push(contentPointTitle);
+                        
+                        if (!newContentPointVis[targetModule!.id]) newContentPointVis[targetModule!.id] = {};
+                        if (!newContentPointVis[targetModule!.id][subTopicTitle]) newContentPointVis[targetModule!.id][subTopicTitle] = {};
+                        newContentPointVis[targetModule!.id][subTopicTitle][contentPointTitle] = true;
+                    }
+                }
+            });
+        }
+    });
+
+    setExams(updatedExams);
+    updateQuestionBank(updatedBank);
+    
+    setModuleVisibility(newModuleVis);
+    localStorage.setItem('moduleVisibility', JSON.stringify(newModuleVis));
+    
+    setSubTopicVisibility(newSubTopicVis);
+    localStorage.setItem('subTopicVisibility', JSON.stringify(newSubTopicVis));
+    
+    setContentPointVisibility(newContentPointVis);
+    localStorage.setItem('contentPointVisibility', JSON.stringify(newContentPointVis));
+
+    return { modulesAdded, subTopicsAdded };
+  }, [updateQuestionBank]);
 
   const handleImportQuestions = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -1030,12 +964,9 @@ export const INITIAL_QUESTION_BANK: QuestionBank = ${jsonBank};
         if (typeof text !== 'string') throw new Error("Failed to read file.");
         
         const importedData = JSON.parse(text);
-        if (typeof importedData !== 'object' || importedData === null || Array.isArray(importedData)) {
-             throw new Error("Invalid JSON format.");
-        }
+        const { modulesAdded, subTopicsAdded } = processImportedData(importedData);
 
-        const result = processImportedData(importedData);
-        alert(`Import successful!\n\nModules Added: ${result.modulesAdded}\nSub-topics synced: ${result.subTopicsAdded}`);
+        alert(`Import successful!\n\nModules Added: ${modulesAdded}\nSub-topics synced: ${subTopicsAdded}`);
 
       } catch (error) {
         console.error("Import failed", error);
@@ -1045,6 +976,77 @@ export const INITIAL_QUESTION_BANK: QuestionBank = ${jsonBank};
     };
     reader.readAsText(file);
   }, [processImportedData]);
+
+  // Auto-sync data.json on load
+  useEffect(() => {
+      const syncData = async () => {
+          setSyncStatus('syncing');
+          try {
+              // Use timestamp to bust cache
+              const response = await fetch(`data.json?t=${new Date().getTime()}`, {
+                  cache: 'no-store',
+                  headers: {
+                      'Cache-Control': 'no-cache, no-store, must-revalidate',
+                      'Pragma': 'no-cache',
+                      'Expires': '0'
+                  }
+              });
+              
+              if (response.status === 404) {
+                  // File not found is expected if user hasn't uploaded it yet. 
+                  // Don't error out, just stay idle.
+                  console.log("data.json not found on server. Skipping auto-sync.");
+                  setSyncStatus('idle');
+                  return;
+              }
+
+              if (!response.ok) throw new Error(`Failed to fetch data.json: ${response.statusText}`);
+              
+              const data = await response.json();
+              processImportedData(data);
+              setSyncStatus('synced');
+              console.log("Auto-sync complete.");
+          } catch (error) {
+              console.error("Auto-sync failed:", error);
+              setSyncStatus('error');
+          }
+      };
+
+      // Small delay to ensure local storage load finishes first
+      const timer = setTimeout(() => {
+          syncData();
+      }, 500);
+
+      return () => clearTimeout(timer);
+  }, [processImportedData]);
+
+  const handleManualSync = useCallback(() => {
+      setSyncStatus('syncing');
+      fetch(`data.json?t=${new Date().getTime()}`, { cache: 'no-store' })
+          .then(res => {
+              if (res.status === 404) {
+                  throw new Error("data.json not found");
+              }
+              if (!res.ok) throw new Error("Fetch failed");
+              return res.json();
+          })
+          .then(data => {
+              processImportedData(data);
+              setSyncStatus('synced');
+              alert("Sync complete!");
+          })
+          .catch(err => {
+              console.error(err);
+              setSyncStatus('idle');
+              if (err.message === "data.json not found") {
+                  alert("No 'data.json' file found on the server to sync with.\n\nPlease export your questions and upload the file to your server root.");
+              } else {
+                  alert("Sync failed. Check console for details.");
+                  setSyncStatus('error');
+              }
+          });
+  }, [processImportedData]);
+
 
   const handleExportTopic = useCallback((module: Module, subTopic: string, contentPoint?: string) => {
     const topicIdentifier = getTopicIdentifier(subTopic, contentPoint);
@@ -1085,8 +1087,11 @@ export const INITIAL_QUESTION_BANK: QuestionBank = ${jsonBank};
             const topicIdentifier = getTopicIdentifier(subTopic, contentPoint);
             const newBank: QuestionBank = { ...questionBank };
             
-            // Ensure we have a valid object for the module
-            const currentModuleQuestions = newBank[module.id] || {};
+            // Fix: explicitly handle type to avoid TS thinking it might be an array and complaining about {}
+            let currentModuleQuestions: Record<string, Question[]> = {};
+            if (newBank[module.id]) {
+                currentModuleQuestions = newBank[module.id] as unknown as Record<string, Question[]>;
+            }
             const moduleQuestions: Record<string, Question[]> = { ...currentModuleQuestions };
 
             moduleQuestions[topicIdentifier] = importedQuestions as unknown as Question[];
@@ -1127,61 +1132,6 @@ export const INITIAL_QUESTION_BANK: QuestionBank = ${jsonBank};
     setActiveExamId(null);
     setCurrentView('home');
   };
-
-  // Unlock Code Handler
-  const handleUnlockAllContent = useCallback((code: string) => {
-    if (code === 'dqadm' || code === 'adm') {
-        const allModIds: number[] = [];
-        const allSubKeys: string[] = [];
-
-        exams.forEach(exam => {
-            exam.modules.forEach(mod => {
-                allModIds.push(mod.id);
-                mod.subTopics.forEach(st => {
-                    allSubKeys.push(getSubTopicLockKey(mod.id, st.title));
-                });
-            });
-        });
-        
-        if (allModIds.length === 0) return;
-        const isFullyUnlocked = allModIds.every(id => unlockedModules.includes(id));
-
-        if (isFullyUnlocked) {
-            // Reset to default (First module of EVERY exam)
-            const defaultModIds: number[] = [];
-            const defaultSubKeys: string[] = [];
-            
-            exams.forEach(exam => {
-                if (exam.modules.length > 0) {
-                     const firstMod = exam.modules[0];
-                     defaultModIds.push(firstMod.id);
-                     
-                     if (firstMod.subTopics.length > 0) {
-                         const firstSub = firstMod.subTopics[0];
-                         defaultSubKeys.push(getSubTopicLockKey(firstMod.id, firstSub.title));
-                     }
-                }
-            });
-            
-            setUnlockedModules(defaultModIds);
-            setUnlockedSubTopics(defaultSubKeys);
-            localStorage.setItem('unlockedModules', JSON.stringify(defaultModIds));
-            localStorage.setItem('unlockedSubTopics', JSON.stringify(defaultSubKeys));
-            alert("🔒 Modules have been LOCKED (Reset to default for all exams).");
-
-        } else {
-            // Unlock everything
-            setUnlockedModules(allModIds);
-            setUnlockedSubTopics(allSubKeys);
-            localStorage.setItem('unlockedModules', JSON.stringify(allModIds));
-            localStorage.setItem('unlockedSubTopics', JSON.stringify(allSubKeys));
-            alert("🔓 Success! All modules and sub-topics have been UNLOCKED.");
-        }
-
-    } else {
-        alert("❌ Invalid unlock code.");
-    }
-  }, [exams, unlockedModules]);
 
   const activeExam = useMemo(() => exams.find(e => e.id === activeExamId), [exams, activeExamId]);
 
@@ -1266,7 +1216,7 @@ export const INITIAL_QUESTION_BANK: QuestionBank = ${jsonBank};
                   unlockedSubTopics={unlockedSubTopics}
                   onUnlockCode={handleUnlockAllContent}
                   syncStatus={syncStatus}
-                  onManualSync={syncDataFromServer}
+                  onManualSync={handleManualSync}
                 />;
         }
         // Fallback to home if no active exam
@@ -1293,23 +1243,6 @@ export const INITIAL_QUESTION_BANK: QuestionBank = ${jsonBank};
       <div className="flex-grow flex items-center justify-center w-full">
         {renderContent()}
       </div>
-      
-      {/* Admin Tools Overlay */}
-      {isAdmin && (
-        <div className="fixed bottom-4 right-4 bg-white p-4 rounded-lg shadow-xl border border-gray-300 z-50">
-            <p className="text-xs font-bold text-gray-500 mb-2 uppercase">Developer Tools</p>
-            <button 
-                onClick={handleExportAsConstantsFile}
-                className="w-full flex items-center gap-2 px-3 py-2 bg-gray-800 text-white text-sm rounded hover:bg-gray-900 transition-colors"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                </svg>
-                Download constants.ts
-            </button>
-        </div>
-      )}
-
       <Footer />
       {isLoginModalOpen && <LoginView onLogin={handleAdminLogin} onClose={() => setLoginModalOpen(false)} />}
       {quizSettings.isOpen && quizSettings.module && (

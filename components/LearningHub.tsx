@@ -54,24 +54,24 @@ const LearningHub: React.FC<LearningHubProps> = ({
 
   return (
     <div className="w-full max-w-7xl mx-auto bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col" style={{ minHeight: '90vh' }}>
-      <header className="bg-gray-50 p-6 border-b border-gray-200 flex justify-between items-center">
+      <header className="bg-gray-50 p-4 sm:p-6 border-b border-gray-200 flex justify-between items-center">
         <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <Icon iconName="book-open" className="h-7 w-7 text-indigo-600" />
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <Icon iconName="book-open" className="h-6 w-6 sm:h-7 sm:w-7 text-indigo-600" />
                 Learning Hub
             </h1>
-            <p className="text-gray-500 text-sm mt-1">Curated resources to boost your cybersecurity knowledge.</p>
+            <p className="text-gray-500 text-xs sm:text-sm mt-1">Curated resources to boost your cybersecurity knowledge.</p>
         </div>
         <button 
             onClick={onReturnToHome}
-            className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-2"
+            className="px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm sm:text-base"
         >
             <Icon iconName="chevron-down" className="h-4 w-4 rotate-90" />
-            Back to Home
+            <span className="hidden sm:inline">Back to Home</span>
         </button>
       </header>
 
-      <main className="p-6 lg:p-8 overflow-y-auto flex-grow">
+      <main className="p-4 sm:p-6 lg:p-8 overflow-y-auto flex-grow">
         
         {isAdmin && (
             <div className="mb-8">
@@ -83,7 +83,7 @@ const LearningHub: React.FC<LearningHubProps> = ({
                         + Add New Resource
                     </button>
                 ) : (
-                    <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-xl border border-gray-200 animate-fade-in">
+                    <form onSubmit={handleSubmit} className="bg-gray-50 p-4 sm:p-6 rounded-xl border border-gray-200 animate-fade-in">
                         <h3 className="font-bold text-gray-800 mb-4">Add Resource</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <input 

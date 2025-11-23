@@ -94,7 +94,7 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({ module, subTopic, con
     }
     return (
       <>
-        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-xl border border-indigo-100 mb-6">
+        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 sm:p-6 rounded-xl border border-indigo-100 mb-6">
             <h3 className="text-lg font-bold text-indigo-900 mb-2 flex items-center gap-2">
                 <Icon iconName="sparkles" className="h-5 w-5 text-indigo-600" />
                 AI Question Generator
@@ -152,7 +152,7 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({ module, subTopic, con
                 <button 
                     onClick={handleBulkGenerate}
                     disabled={isGenerating}
-                    className="w-full py-2.5 bg-white border border-indigo-200 text-indigo-700 font-semibold rounded-lg hover:bg-indigo-50 hover:border-indigo-300 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
+                    className="w-full py-2.5 bg-white border border-indigo-200 text-indigo-700 font-semibold rounded-lg hover:bg-indigo-50 hover:border-indigo-300 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm text-sm sm:text-base"
                 >
                     {isGenerating ? (
                          <span className="flex items-center gap-2">
@@ -174,9 +174,9 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({ module, subTopic, con
 
         <div className="space-y-3">
             {questions.map((q, index) => (
-            <div key={q.id} className="p-4 bg-gray-50 rounded-lg flex justify-between items-center border border-gray-200">
-                <div className="flex-1 pr-4">
-                    <p className="text-gray-700"><span className="font-bold text-gray-500 mr-2">{index + 1}.</span> {q.question}</p>
+            <div key={q.id} className="p-3 sm:p-4 bg-gray-50 rounded-lg flex justify-between items-center border border-gray-200">
+                <div className="flex-1 pr-2 sm:pr-4">
+                    <p className="text-gray-700 text-sm sm:text-base"><span className="font-bold text-gray-500 mr-2">{index + 1}.</span> {q.question}</p>
                     {q.difficulty && (
                          <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${
                              q.difficulty === 'Advanced' ? 'bg-red-100 text-red-700' : 
@@ -187,9 +187,9 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({ module, subTopic, con
                          </span>
                     )}
                 </div>
-                <div className="flex gap-2 flex-shrink-0">
-                <button onClick={() => setEditingQuestion(q)} className="px-3 py-1 text-sm font-semibold text-blue-700 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors">Edit</button>
-                <button onClick={() => handleDeleteQuestion(q.id)} className="px-3 py-1 text-sm font-semibold text-red-700 bg-red-100 rounded-full hover:bg-red-200 transition-colors">Delete</button>
+                <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+                <button onClick={() => setEditingQuestion(q)} className="px-3 py-1 text-xs sm:text-sm font-semibold text-blue-700 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors">Edit</button>
+                <button onClick={() => handleDeleteQuestion(q.id)} className="px-3 py-1 text-xs sm:text-sm font-semibold text-red-700 bg-red-100 rounded-full hover:bg-red-200 transition-colors">Delete</button>
                 </div>
             </div>
             ))}
@@ -206,16 +206,16 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({ module, subTopic, con
 
   return (
     <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden" style={{ minHeight: '90vh' }}>
-      <header className="p-6 border-b border-gray-200 bg-gray-50">
-        <h1 className="text-2xl font-bold text-gray-800">Manage Questions</h1>
-        <p className="text-gray-500">{module.title}: <span className="font-semibold text-gray-700">{contentPoint ? `${subTopic} > ${contentPoint}` : subTopic}</span></p>
+      <header className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Manage Questions</h1>
+        <p className="text-gray-500 text-sm sm:text-base">{module.title}: <span className="font-semibold text-gray-700">{contentPoint ? `${subTopic} > ${contentPoint}` : subTopic}</span></p>
       </header>
-      <main className="flex-1 p-6 overflow-y-auto">
+      <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
         {renderContent()}
       </main>
-      <footer className="p-6 border-t border-gray-200 flex justify-end gap-4 bg-gray-50">
-        <button onClick={onClose} className="px-6 py-2 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
-        <button onClick={handleSaveChanges} className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-md">Save & Close</button>
+      <footer className="p-4 sm:p-6 border-t border-gray-200 flex justify-end gap-4 bg-gray-50">
+        <button onClick={onClose} className="px-4 sm:px-6 py-2 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
+        <button onClick={handleSaveChanges} className="px-4 sm:px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-md">Save & Close</button>
       </footer>
     </div>
   );
